@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Article</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+
+    body{
+        background:#f4f4f4;
+    }
+
+    .article-container{
+        background:white;
+        padding:25px;
+        border-radius:5px;
+    }
+
+    .article-title{
+        font-size:34px;
+        font-weight:bold;
+    }
+
+    .article-meta{
+        color:gray;
+        margin-bottom:15px;
+    }
+
+    .article-image{
+        width:100%;
+        height:400px;
+        object-fit:cover;
+        margin:20px 0;
+    }
+
+    .article-content{
+        font-size:18px;
+        line-height:1.8;
+    }
+
+    .tag{
+        display:inline-block;
+        background:#eee;
+        padding:5px 10px;
+        margin:5px;
+        border-radius:4px;
+    }
+
+    .sidebar{
+        background:white;
+        padding:20px;
+        border-radius:5px;
+    }
+
+    .related img{
+        width:100%;
+        height:150px;
+        object-fit:cover;
+    }
+
+    .comment-box{
+        margin-top:30px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="container mt-4">
+
+  <div class="row">
+
+    <!-- MAIN ARTICLE -->
+    <div class="col-lg-8">
+
+      <div class="article-container">
+
+        <h1 class="article-title">
+          Major Technology Breakthrough Changes the Industry
+        </h1>
+
+        <div class="article-meta">
+          By Admin | March 12, 2026 | 3,245 views
+        </div>
+
+        <img class="article-image" src="https://picsum.photos/900/400">
+
+        <div class="article-content">
+
+          <p>
+            Artificial intelligence continues to transform industries across the globe.
+            Experts believe that the latest developments could redefine how businesses operate.
+          </p>
+
+          <p>
+            Researchers have introduced new algorithms capable of solving complex problems
+            in significantly less time compared to traditional systems.
+          </p>
+
+          <p>
+            Technology companies are already racing to integrate these innovations
+            into their platforms to gain competitive advantages.
+          </p>
+
+        </div>
+
+        <!-- TAGS -->
+        <div class="mt-4">
+
+          <strong>Tags:</strong>
+
+          <span class="tag">Technology</span>
+          <span class="tag">AI</span>
+          <span class="tag">Innovation</span>
+
+        </div>
+
+      </div>
+
+
+      <!-- RELATED NEWS -->
+
+      <div class="article-container mt-4">
+
+        <h4>Related News</h4>
+
+        <div class="row related">
+
+          <div class="col-md-4">
+            <img src="https://picsum.photos/300/200">
+            <p>Startup raises millions for AI platform</p>
+          </div>
+
+          <div class="col-md-4">
+            <img src="https://picsum.photos/301/200">
+            <p>New smartphone technology announced</p>
+          </div>
+
+          <div class="col-md-4">
+            <img src="https://picsum.photos/302/200">
+            <p>Cybersecurity threats rising globally</p>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- COMMENTS -->
+
+      <div class="article-container comment-box">
+
+        <h4>Comments</h4>
+
+        <textarea class="form-control mb-3" placeholder="Write a comment..."></textarea>
+        <button class="btn btn-danger">Post Comment</button>
+
+        <hr>
+
+        <p><strong>John:</strong> Interesting article!</p>
+        <p><strong>Anna:</strong> AI will change everything.</p>
+
+      </div>
+
+    </div>
+
+
+    <!-- SIDEBAR -->
+    <div class="col-lg-4">
+
+      <div class="sidebar mb-4">
+
+        <h5>Trending</h5>
+
+        <ol>
+          <li>Celebrity wedding goes viral</li>
+          <li>Tech company launches new device</li>
+          <li>Stock market hits new high</li>
+          <li>Movie breaks box office record</li>
+          <li>Travel destinations trending</li>
+        </ol>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
