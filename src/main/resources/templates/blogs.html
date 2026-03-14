@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html th:replace="~{fragments/layout :: page(~{::title}, ~{::#customCss}, ~{::#customJs}, ~{::main})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>All Posts - DevBlog</title>
+    <th:block id="customCss">
+        <link rel="stylesheet" th:href="@{/css/blog.css}">
+    </th:block>
+</head>
+<body>
+
+<main class="container my-4">
+    <div class="row g-3">
+        <div class="col-lg-3">
+            <div class="cardx p-3">
+                <h5>Search</h5>
+                <form th:action="@{/blogs}" method="get" class="vstack gap-2">
+                    <input class="form-control" name="q" placeholder="Keyword (title/content)" th:value="${q}">
+                    <input type="hidden" name="page" value="0">
+
+                    <div>
+                        <label class="form-label mb-1">Category</label>
+                        <div class="typeahead">
+                            <input id="categoryInput" type="search" class="form-control" placeholder="Search category..." autocomplete="off">
+                            <div id="categorySuggestions" class="suggestions d-none"></div>
+                        </div>
+                        <input type="hidden" name="categoryId" id="categoryHidden" th:value="${categoryId}">
+                        <input type="hidden" id="initialCategoryName" th:value="${selectedCategory != null ? selectedCategory.name : ''}">
+                        <div id="categorySelected" class="mt-2"></div>
+                    </div>
+
+                    <div>
+                        <label class="form-label mb-1">Tags (up to 3)</label>
+                        <div class="typeahead">
+                            <input id="tagInput" type="search" class="form-control" placeholder="Search tags..." autocomplete="off">
+                            <div id="tagSuggestions" class="suggestions d-none"></div>
+                        </div>
+                        <input type="hidden" name="tagIds" id="tagsHidden" th:value="${tagIds != null ? #strings.listJoin(tagIds, ',') : ''}">
+                        <div id="initialTagsData" class="d-none">
+                            <span th:if="${selectedTags != null}" th:each="t : ${selectedTags}" th:attr="data-id=${t.id},data-name=${t.name}"></span>
+                        </div>
+                        <div id="tagsSelected" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        <div class="form-text">Type a tag name, click suggestion to add. Max 3 tags.</div>
+                    </div>
+
+                    <input type="hidden" name="sortDir" th:value="${sortDir}">
+                    <input type="hidden" name="size" th:value="${size}">
+                    <button class="btn btn-primary w-100" type="submit">Apply</button>
+                    <a class="btn btn-outline-secondary w-100" th:href="@{/blogs}">Clear</a>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h3 class="mb-0">All posts</h3>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="muted">
+                        <span th:text="${page.totalElements}">0</span> results
+                    </div>
+
+                    <form th:action="@{/blogs}" method="get" class="d-flex align-items-center gap-2">
+                        <input type="hidden" name="q" th:value="${q}">
+                        <input type="hidden" name="categoryId" th:value="${categoryId}">
+                        <input type="hidden" name="tagIds" th:value="${tagIds != null ? #strings.listJoin(tagIds, ',') : ''}">
+                        <input type="hidden" name="size" th:value="${size}">
+                        <input type="hidden" name="page" value="0">
+
+                        <label class="small muted" for="sortDir">Sort</label>
+                        <select id="sortDir" class="form-select form-select-sm" name="sortDir" onchange="this.form.submit()">
+                            <option value="desc" th:selected="${sortDir == null or sortDir.equalsIgnoreCase('desc')}">Newest</option>
+                            <option value="asc" th:selected="${sortDir != null and sortDir.equalsIgnoreCase('asc')}">Oldest</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <div class="vstack gap-3">
+                <div class="cardx p-3" th:each="a : ${page.content}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a th:href="@{/articles/{id}(id=${a.id})}" class="text-decoration-none" aria-label="View article">
+                                <img class="thumb img-fluid w-100" th:if="${a.thumbnail != null}" th:src="${a.thumbnail}" alt="thumb">
+                            </a>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="small muted mb-2">
+                                <span class="badge bg-light text-dark border" th:text="${a.category != null ? a.category.name : 'Uncategorized'}">Category</span>
+                                <span> • </span>
+                                <span th:text="${#temporals.format(a.createdAt, 'dd/MM/yyyy HH:mm')}">date</span>
+                            </div>
+
+                            <h5 class="mb-2">
+                                <a class="text-decoration-none text-dark fw-bold" th:href="@{/articles/{id}(id=${a.id})}" th:text="${a.title}">Title</a>
+                            </h5>
+                            <p class="muted line-clamp-2" th:text="${a.summary}">Summary</p>
+
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <span class="badge text-bg-light border" th:each="t : ${a.tags}" th:text="'#' + ${t.name}">tag</span>
+                            </div>
+
+                            <a class="small text-decoration-none fw-medium" th:href="@{/articles/{id}(id=${a.id})}">View details →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cardx p-5 text-center" th:if="${page.totalElements == 0}">
+                    <i class="bi bi-search fs-1 text-muted mb-3 d-block"></i>
+                    <div class="muted fs-5">No posts found. Try different keywords or filters!</div>
+                </div>
+            </div>
+
+            <form th:action="@{/blogs}" method="get" class="mt-4" th:if="${page.totalPages > 1}">
+                <input type="hidden" name="q" th:value="${q}">
+                <input type="hidden" name="categoryId" th:value="${categoryId}">
+                <input type="hidden" name="tagIds" th:value="${tagIds != null ? #strings.listJoin(tagIds, ',') : ''}">
+                <input type="hidden" name="sortDir" th:value="${sortDir}">
+                <input type="hidden" name="size" th:value="${size}">
+                <input type="hidden" name="page" id="pageInput" th:value="${page.number}">
+
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${page.first}? 'disabled'">
+                        <button class="page-link" type="submit" th:disabled="${page.first}" onclick="document.getElementById('pageInput').value=((parseInt(document.getElementById('pageInput').value)||0)-1)">Prev</button>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, page.totalPages-1)}"
+                        th:classappend="${i == page.number}? 'active'">
+                        <button class="page-link" type="submit" th:text="${i+1}" th:disabled="${i == page.number}"
+                                th:onclick="|document.getElementById('pageInput').value='${i}'|">1</button>
+                    </li>
+                    <li class="page-item" th:classappend="${page.last}? 'disabled'">
+                        <button class="page-link" type="submit" th:disabled="${page.last}" onclick="document.getElementById('pageInput').value=((parseInt(document.getElementById('pageInput').value)||0)+1)">Next</button>
+                    </li>
+                </ul>
+            </form>
+        </div>
+    </div>
+</main>
+
+<th:block id="customJs">
+    <script th:src="@{/js/blogs-search.js}"></script>
+</th:block>
+
+</body>
+</html>
