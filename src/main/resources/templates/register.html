@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register - HSF News</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0; }
+        .auth-card { width: 100%; max-width: 500px; border-radius: 12px; border: none; }
+    </style>
+</head>
+<body>
+    <main class="container auth-wrapper">
+        <article class="card auth-card shadow-sm p-4 p-md-5">
+            <header class="text-center mb-4">
+                <h1 class="h3 fw-bold text-primary">Create an Account</h1>
+                <p class="text-muted">Join HSF News today</p>
+            </header>
+            
+            <form th:action="@{'/authen/register'}" method="POST" th:object="${uObj}">
+                <!-- Hidden fields parameters -->
+                <input type="hidden" id="id" th:field="*{id}">
+                <input type="hidden" id="role" th:field="*{role}">
+                <input type="hidden" id="createdAt" th:value="*{createdAt}">
+                
+                <fieldset class="mb-3">
+                    <label for="username" class="form-label fw-semibold">Username</label>
+                    <input type="text" id="username" th:field="*{username}" class="form-control form-control-lg" placeholder="Choose a username" required autofocus>
+                </fieldset>
+                
+                <fieldset class="mb-3">
+                    <label for="email" class="form-label fw-semibold">Email</label>
+                    <input type="email" id="email" th:field="*{email}" class="form-control form-control-lg" placeholder="name@example.com" required>
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <label for="fullname" class="form-label fw-semibold">Full Name</label>
+                    <input type="text" id="fullname" th:field="*{fullName}" class="form-control form-control-lg" placeholder="Your full name" required>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <label for="password" class="form-label fw-semibold">Password</label>
+                    <input type="password" id="password" th:field="*{password}" class="form-control form-control-lg" placeholder="Create a strong password" required>
+                </fieldset>
+                
+                <button type="submit" class="btn btn-primary btn-lg w-100 mb-3 fw-bold">Register</button>
+                
+                <footer class="text-center mt-3">
+                    <span class="text-muted">Already have an account?</span> 
+                    <a th:href="@{'/authen/login'}" class="text-decoration-none fw-semibold">Login here</a>
+                </footer>
+            </form>
+        </article>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
