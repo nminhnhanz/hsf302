@@ -1,254 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>News Portal</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <style>
-
-    body{
-        background:#f4f4f4;
-    }
-
-    .header{
-        background:white;
-        border-bottom:3px solid #ff2d55;
-    }
-
-    .logo{
-        font-size:28px;
-        font-weight:bold;
-        color:#ff2d55;
-    }
-
-    .navbar-nav a{
-        font-weight:500;
-    }
-
-    .featured img{
-        width:100%;
-        height:350px;
-        object-fit:cover;
-    }
-
-    .featured-title{
-        font-size:26px;
-        font-weight:bold;
-        margin-top:10px;
-    }
-
-    .small-news img{
-        width:100%;
-        height:120px;
-        object-fit:cover;
-    }
-
-    .article-card{
-        background:white;
-        padding:15px;
-        margin-bottom:15px;
-        border-radius:5px;
-    }
-
-    .article-card img{
-        width:100%;
-        height:180px;
-        object-fit:cover;
-    }
-
-    .sidebar{
-        background:white;
-        padding:15px;
-        border-radius:5px;
-    }
-
-    .sidebar h5{
-        border-bottom:2px solid #ff2d55;
-        padding-bottom:5px;
-    }
-
-    .footer{
-        margin-top:40px;
-        background:#222;
-        color:white;
-        padding:20px;
-        text-align:center;
-    }
-
-  </style>
+<html th:replace="~{fragments/layout :: page(~{::title}, ~{::#customCss}, ~{::#customJs}, ~{::main})}" xmlns:th="http://www.thymeleaf.org"><head>
+    <title>DevBlog - Software Engineering & Programming</title>
+    <th:block id="customCss">
+        <link rel="stylesheet" th:href="@{/css/index.css}">
+    </th:block>
 </head>
-
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <div class="container">
-
-    <nav class="navbar navbar-expand-lg">
-      <a class="navbar-brand logo" href="#">NEWS24</a>
-
-      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="nav">
-
-        <ul class="navbar-nav ms-4">
-          <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Star</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Cinema</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Music</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Life</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Tech</a></li>
-        </ul>
-
-        <form class="ms-auto d-flex">
-          <input class="form-control me-2" placeholder="Search news">
-          <button class="btn btn-outline-danger">Search</button>
-        </form>
-
-      </div>
-    </nav>
-
-  </div>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="container mt-4">
-
-  <div class="row">
-
-    <!-- LEFT CONTENT -->
-    <div class="col-lg-8">
-
-      <!-- FEATURED -->
-      <div class="featured mb-4">
-        <img src="https://picsum.photos/800/400">
-        <div class="featured-title">
-          Major Breaking News Headline Goes Here
+<main class="container my-5">
+    <section id="about" class="hero p-4 p-md-5 mb-5 d-flex align-items-center">
+        <div class="row w-100 align-items-center">
+            <div class="col-lg-8 order-2 order-lg-1 mt-4 mt-lg-0 text-center text-lg-start">
+                <span class="badge bg-primary mb-3 px-3 py-2 rounded-pill">Hi there, I'm a Developer 👋</span>
+                <h1 class="display-5 fw-bold mb-3 text-dark">Writing about Code, Architecture, and Backend.</h1>
+                <p class="text-muted-custom fs-5 mb-4" th:text="${'Join me on my journey exploring Java, Spring Boot, System Design, and the life of a Software Engineer.'}">
+                    Author bio goes here.
+                </p>
+                <div class="d-flex gap-3 justify-content-center justify-content-lg-start align-items-center">
+                    <a th:href="@{/blogs}" class="btn btn-dark px-4 py-2 rounded-pill fw-medium">Explore Articles</a>
+                </div>
+            </div>
+            <div class="col-lg-4 order-1 order-lg-2 text-center">
+                <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80" alt="Author Avatar" class="hero-avatar">
+            </div>
         </div>
-        <p>
-          This is a short summary of the most important news article of the day.
-        </p>
-      </div>
+    </section>
 
-      <!-- SMALL FEATURED -->
-      <div class="row mb-4">
+    <section class="mb-5">
+        <div class="d-flex flex-wrap gap-3 justify-content-center">
+            <a th:each="c, iterStat : ${categories}" th:if="${iterStat.index < 4}"
+               th:href="@{/blogs(categoryId=${c.id})}"
+               class="text-decoration-none category-pill"
+               th:text="'🏷️ ' + ${c.name}">Category</a>
+            <a th:href="@{/blogs}" class="text-decoration-none category-pill">📚 All Topics</a>
+        </div>
+    </section>
 
-        <div class="col-md-4 small-news">
-          <img src="https://picsum.photos/300/200">
-          <p>Trending news title example</p>
+    <section class="mb-5">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h3 class="fw-bold mb-0">Latest posts</h3>
+            <a th:href="@{/blogs}" class="text-decoration-none fw-medium text-primary">View all <i class="bi bi-arrow-right"></i></a>
         </div>
 
-        <div class="col-md-4 small-news">
-          <img src="https://picsum.photos/301/200">
-          <p>Trending news title example</p>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4" th:each="a : ${latestArticles}">
+                <a class="text-decoration-none text-reset d-block h-100" th:href="@{/articles/{id}(id=${a.id})}" aria-label="View article">
+                    <div class="post-card">
+                        <img class="post-thumb" th:if="${a.thumbnail != null}" th:src="${a.thumbnail}" alt="thumbnail">
+                        <div class="card-body-custom">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="badge badge-category rounded-pill" th:text="${a.category != null ? a.category.name : 'Uncategorized'}">Category</span>
+                                <span class="small text-muted-custom" th:text="${#temporals.format(a.createdAt, 'MMM dd, yyyy')}">Oct 24, 2023</span>
+                            </div>
+
+                            <h5 class="fw-bold mb-2 text-dark line-clamp-2" th:text="${a.title}">Title</h5>
+                            <p class="text-muted-custom mb-3 line-clamp-3 flex-grow-1" th:text="${a.summary}">Summary</p>
+
+                            <div class="d-flex flex-wrap gap-2 mt-auto">
+                                <span class="badge badge-tag rounded-pill px-2 py-1" th:each="t : ${a.tags}" th:text="'#' + ${t.name}">#tag</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-12 text-center py-5 text-muted-custom" th:if="${latestArticles == null or latestArticles.isEmpty()}">
+                <i class="bi bi-journal-x fs-1 mb-3 d-block"></i>
+                <p>No articles published yet. Check back soon!</p>
+            </div>
         </div>
-
-        <div class="col-md-4 small-news">
-          <img src="https://picsum.photos/302/200">
-          <p>Trending news title example</p>
-        </div>
-
-      </div>
-
-      <!-- LATEST NEWS -->
-
-      <h4 class="mb-3">Latest News</h4>
-
-      <div class="article-card row">
-
-        <div class="col-md-4">
-          <img src="https://picsum.photos/300/200">
-        </div>
-
-        <div class="col-md-8">
-          <h5>News Article Title Example</h5>
-          <p>
-            Short description of the article content. This preview encourages readers to click and read more.
-          </p>
-          <small>March 11, 2026</small>
-        </div>
-
-      </div>
-
-      <div class="article-card row">
-
-        <div class="col-md-4">
-          <img src="https://picsum.photos/305/200">
-        </div>
-
-        <div class="col-md-8">
-          <h5>Another News Article Title</h5>
-          <p>
-            Short summary describing the content of this news story.
-          </p>
-          <small>March 11, 2026</small>
-        </div>
-
-      </div>
-
-      <div class="article-card row">
-
-        <div class="col-md-4">
-          <img src="https://picsum.photos/306/200">
-        </div>
-
-        <div class="col-md-8">
-          <h5>Technology News Example</h5>
-          <p>
-            Quick overview of the news article. Click to read full story.
-          </p>
-          <small>March 11, 2026</small>
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <!-- SIDEBAR -->
-    <div class="col-lg-4">
-
-      <div class="sidebar mb-4">
-
-        <h5>Trending</h5>
-
-        <ol>
-          <li>Celebrity story going viral</li>
-          <li>Latest movie announcement</li>
-          <li>Technology breakthrough</li>
-          <li>Sports match highlight</li>
-          <li>Internet trending topic</li>
-        </ol>
-
-      </div>
-
-      <div class="sidebar">
-
-        <h5>Categories</h5>
-
-        <ul class="list-unstyled">
-          <li>Entertainment</li>
-          <li>Technology</li>
-          <li>Sports</li>
-          <li>Life</li>
-          <li>Travel</li>
-        </ul>
-
-      </div>
-
-    </div>
-
-  </div>
-</div>
-
-<!-- FOOTER -->
-<div class="footer">
-  © 2026 News Portal
-</div>
-
+    </section>
+</main>
+<th:block id="customJs"></th:block>
 </body>
 </html>

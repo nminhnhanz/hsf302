@@ -1,0 +1,59 @@
+# ---------------------------------------------
+# Java / Maven / Spring Boot
+# ---------------------------------------------
+/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Maven wrapper related (keep wrapper files, ignore build artifacts)
+.mvn/wrapper/*.jar
+
+# IntelliJ IDEA / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
+.project
+.classpath
+.settings/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ---------------------------------------------
+# Environment / secrets
+# ---------------------------------------------
+.env
+
+# ---------------------------------------------
+# Test / coverage
+# ---------------------------------------------
+/surefire-reports/
+/failsafe-reports/
+/jacoco*
+
+# ---------------------------------------------
+# Misc
+# ---------------------------------------------
+*.tmp
+*.swp
+*.swo
+
