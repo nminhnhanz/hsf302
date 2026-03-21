@@ -18,3 +18,4 @@ public class GlobalModelAttributes {
         return categoryService.findAllForHeader();
     }
 }
+
