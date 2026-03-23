@@ -12,7 +12,7 @@
 .mvn/wrapper/*.jar
 
 # IntelliJ IDEA / JetBrains
-.idea/
+.idea
 *.iml
 *.iws
 *.ipr

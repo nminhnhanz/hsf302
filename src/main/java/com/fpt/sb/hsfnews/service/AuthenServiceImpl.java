@@ -12,7 +12,7 @@ public class AuthenServiceImpl implements AuthenService {
 
     @Override
     public User login(String username, String password) {
-        return authenRepo.findByUsernameContainingIgnoreCaseAndPassword(username, password);
+        return authenRepo.findByUsernameIgnoreCaseAndPassword(username, password);
     }
 
     @Override

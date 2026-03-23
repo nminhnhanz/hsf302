@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AuthenRepo extends JpaRepository<User,Long> {
-     User findByUsernameContainingIgnoreCaseAndPassword(String username, String password);
+     User findByUsernameIgnoreCaseAndPassword(String username, String password);
      User findByUsername(String username);
      boolean existsByUsername(String username);
      boolean existsByEmail(String email);
