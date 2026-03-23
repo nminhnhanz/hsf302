@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 public class AuthenController {
     private final AuthenService authenService;
 
-    @GetMapping({"/", "/login"})
+    @GetMapping("/login")
     public String login(){
         return "login";
     }
@@ -33,16 +33,10 @@ public class AuthenController {
             return "redirect:/authen/login";
         }
         session.setAttribute("loggedInUser", user);
-        return "redirect:/authen/homepage";
+        return "redirect:/";
     }
 
-    @GetMapping("/homepage")
-    public String articles(HttpSession session){
-        if(session.getAttribute("loggedInUser") == null){
-            return "redirect:/authen/login";
-        }
-        return "homepage";
-    }
+
 
     @GetMapping("/register")
     public String register(Model box){

@@ -13,13 +13,7 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-3">
-<!--                    <li class="nav-item">-->
-<!--                        <a class="nav-link" th:href="@{/}">Home</a>-->
-<!--                    </li>-->
-<!--                    <li class="nav-item">-->
-<!--                        <a class="nav-link" th:href="@{/#about}">About</a>-->
-<!--                    </li>-->
-
+             </li>-->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             Categories
@@ -33,9 +27,7 @@
                         </ul>
                     </li>
 
-<!--                    <li class="nav-item">-->
-<!--                        <a class="nav-link" th:href="@{/blogs}">All posts</a>-->
-<!--                    </li>-->
+
                 </ul>
 
                 <form class="d-flex me-auto" th:action="@{/blogs}" method="get">
@@ -44,9 +36,65 @@
                     <button class="btn btn-outline-primary" type="submit">Search</button>
                 </form>
 
-                <div class="d-flex gap-2">
-                    <a class="btn btn-outline-secondary btn-sm" th:href="@{/login}">Login</a>
-                    <a class="btn btn-primary btn-sm" th:href="@{/register}">Register</a>
+                <!-- Bắt đầu: Nút tạo bài viết (Chỉ dành cho ADMIN) -->
+                <div th:if="${session.loggedInUser != null and session.loggedInUser.role.name() == 'ADMIN'}" class="me-3">
+                    <a class="btn btn-success btn-sm d-flex align-items-center" th:href="@{'/blogs/create'}">
+                        <i class="me-1 d-inline-block text-center" style="width: 16px;">
+                            <!-- SVG Icon: Plus-circle -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+                              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                              <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
+                            </svg>
+                        </i> New Post
+                    </a>
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
+
+                    <th:block th:if="${session.loggedInUser == null}">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="@{'/authen/login'}">Login</a>
+                        <a class="btn btn-primary btn-sm" th:href="@{'/authen/register'}">Register</a>
+                    </th:block>
+
+
+                    <div th:if="${session.loggedInUser != null}" class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center text-decoration-none" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0;">
+
+                            <img th:src="@{'https://ui-avatars.com/api/?name=' + ${session.loggedInUser.fullName} + '&background=random&color=fff&size=36&bold=true&rounded=true'}" alt="Profile" class="rounded-circle me-2 shadow-sm" style="width: 36px; height: 36px;">
+                            <span class="fw-semibold text-dark me-1" th:text="${session.loggedInUser.fullName}">Tên Người Dùng</span>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3" style="min-width: 220px; border-radius: 12px;">
+                            <li>
+                                <div class="px-4 py-2 text-muted">
+                                    <small class="d-block text-uppercase fw-bold text-primary mb-1" style="letter-spacing: 0.5px;" th:text="${session.loggedInUser.role}">VAI TRÒ</small>
+                                    <small th:text="${session.loggedInUser.email}">email@example.com</small>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item py-2" href="#">
+                                    <i class="me-2 text-primary d-inline-block text-center" style="width: 20px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
+                                          <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-2.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
+                                        </svg>
+                                    </i>My Profile
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger py-2" th:href="@{'/authen/logout'}">
+                                    <i class="me-2 d-inline-block text-center" style="width: 20px;">
+                                        <!-- SVG Icon: Logout -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-right" viewBox="0 0 16 16">
+                                          <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/>
+                                          <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+                                        </svg>
+                                    </i>Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
