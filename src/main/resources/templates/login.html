@@ -25,12 +25,14 @@
             <form action="/authen" method="post">
                 <fieldset class="mb-3">
                     <label for="username" class="form-label fw-semibold">Username</label>
-                    <input type="text" id="username" name="username" class="form-control form-control-lg" placeholder="Enter your username" required autofocus>
+                    <input type="text" id="username" name="username" th:value="${username}" class="form-control form-control-lg" th:classappend="${usernameError != null} ? 'is-invalid' : ''" placeholder="Enter your username" autofocus>
+                    <div class="invalid-feedback fw-medium" th:if="${usernameError != null}" th:text="${usernameError}"></div>
                 </fieldset>
                 
                 <fieldset class="mb-4">
                     <label for="password" class="form-label fw-semibold">Password</label>
-                    <input type="password" id="password" name="password" class="form-control form-control-lg" placeholder="Enter your password" required>
+                    <input type="password" id="password" name="password" class="form-control form-control-lg" th:classappend="${passwordError != null} ? 'is-invalid' : ''" placeholder="Enter your password">
+                    <div class="invalid-feedback fw-medium" th:if="${passwordError != null}" th:text="${passwordError}"></div>
                 </fieldset>
                 
                 <button type="submit" class="btn btn-primary btn-lg w-100 mb-3 fw-bold">Login</button>

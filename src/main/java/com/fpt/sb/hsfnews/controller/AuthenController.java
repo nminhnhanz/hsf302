@@ -26,10 +26,36 @@ public class AuthenController {
     }
 
     @PostMapping()
-    public String doLogin(HttpSession session, RedirectAttributes redirectAttributes, @RequestParam String username, @RequestParam String password){
+    public String doLogin(RedirectAttributes redirectAttributes, HttpSession session, 
+                          @RequestParam(required = false) String username, 
+                          @RequestParam(required = false) String password){
+        boolean hasError = false;
+
+        if (username == null || username.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("usernameError", "Username is required");
+            hasError = true;
+        } else if (username.length() < 5 || username.length() > 50) {
+            redirectAttributes.addFlashAttribute("usernameError", "The name must be from 5 to 50 characters length");
+            hasError = true;
+        }
+
+        if (password == null || password.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("passwordError", "Password is required");
+            hasError = true;
+        } else if (password.length() < 6 || password.length() > 100) {
+            redirectAttributes.addFlashAttribute("passwordError", "Password must be from 6 to 100 characters length");
+            hasError = true;
+        }
+
+        if (hasError) {
+            redirectAttributes.addFlashAttribute("username", username);
+            return "redirect:/authen/login";
+        }
+
         User user = authenService.login(username, password);
         if(user == null){
             redirectAttributes.addFlashAttribute("errMsg", "Wrong username or password");
+            redirectAttributes.addFlashAttribute("username", username);
             return "redirect:/authen/login";
         }
         session.setAttribute("loggedInUser", user);
@@ -40,28 +66,32 @@ public class AuthenController {
 
     @GetMapping("/register")
     public String register(Model box){
-        User user = new  User();
-        user.setRole(Role.EDITOR);
-        user.setCreatedAt(LocalDateTime.now());
-        box.addAttribute("uObj", user);
+        if (!box.containsAttribute("uObj")) {
+            User user = new User();
+            user.setRole(Role.EDITOR);
+            user.setCreatedAt(LocalDateTime.now());
+            box.addAttribute("uObj", user);
+        }
         return "register";
     }
 
     @PostMapping("/register")
-    public String doRegister(@Valid @ModelAttribute("uObj") User user, Model box , BindingResult result){
+    public String doRegister(@Valid @ModelAttribute("uObj") User user, BindingResult result, RedirectAttributes redirectAttributes){
         if (authenService.isUserExist(user.getUsername())) {
-            box.addAttribute("error", "Username already exists");
-            return "register";
-        }else if (authenService.isEmailExist(user.getEmail())) {
-            box.addAttribute("error", "Email already exists");
-            return "register";
+            result.rejectValue("username", "error.user", "Username already exists");
+        }
+        if (authenService.isEmailExist(user.getEmail())) {
+            result.rejectValue("email", "e rror.user", "Email already exists");
         }
 
         if(result.hasErrors()){
-            box.addAttribute("uObj", user);
-            box.addAttribute("errMsg", "Please fix the errors below");
-            return "register";
+            // Pass the model object and its BindingResult validation states over to the redirect
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.uObj", result);
+            redirectAttributes.addFlashAttribute("uObj", user);
+            redirectAttributes.addFlashAttribute("errMsg", "Please fix the errors below");
+            return "redirect:/authen/register";
         }
+        
         authenService.register(user);
         return "redirect:/authen/login";
     }
