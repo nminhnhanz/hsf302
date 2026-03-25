@@ -2,11 +2,13 @@ package com.fpt.sb.hsfnews.controller;
 
 import com.fpt.sb.hsfnews.service.ArticleService;
 import com.fpt.sb.hsfnews.service.CategoryService;
+import com.fpt.sb.hsfnews.service.CommentService;
 import com.fpt.sb.hsfnews.service.TagService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -16,11 +18,13 @@ public class BlogController {
     private final ArticleService articleService;
     private final CategoryService categoryService;
     private final TagService tagService;
+    private final CommentService commentService;
 
-    public BlogController(ArticleService articleService, CategoryService categoryService, TagService tagService) {
+    public BlogController(ArticleService articleService, CategoryService categoryService, TagService tagService, CommentService commentService) {
         this.articleService = articleService;
         this.categoryService = categoryService;
         this.tagService = tagService;
+        this.commentService = commentService;
     }
 
     @GetMapping("/blogs")
@@ -57,5 +61,23 @@ public class BlogController {
         model.addAttribute("sortDir", sortDir);
 
         return "blogs";
+    }
+
+    @GetMapping("/articles/{id}")
+    public String detail(@PathVariable("id") Long id, Model model) {
+        var article = articleService.getPublishedDetail(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        
+        model.addAttribute("article", article);
+        model.addAttribute("parentComments", commentService.getParentCommentsByArticleId(id));
+        model.addAttribute("commentForm", new com.fpt.sb.hsfnews.controller.CommentController.CommentForm());
+        return "article-detail";
+    }
+
+    @GetMapping("/articles")
+    public String byTitle(@RequestParam(name = "title") String title) {
+        var article = articleService.getPublishedByTitle(title)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return "redirect:/articles/" + article.getId();
     }
 }

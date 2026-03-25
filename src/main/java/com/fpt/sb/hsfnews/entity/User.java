@@ -25,8 +25,8 @@ public class User {
     @Size(min = 5, max = 50, message = "The name must be from 5 to 50 characters length")
     @NotBlank(message = "Username is required")
     private String username;
-    @Column(nullable = false, columnDefinition = "varchar(100)")
-    @Size(min = 6, max = 50, message = "Password must be from 6 to 100 characters length")
+    @Column(nullable = false, columnDefinition = "varchar(255)")
+    @Size(min = 4, max = 255, message = "Password must be from 4 to 255 characters length")
     @NotBlank(message = "Password is required")
     private String password;
     @Column(nullable = false, columnDefinition = "nvarchar(50)")

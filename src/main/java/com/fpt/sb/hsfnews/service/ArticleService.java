@@ -2,12 +2,14 @@ package com.fpt.sb.hsfnews.service;
 
 import com.fpt.sb.hsfnews.entity.Article;
 import com.fpt.sb.hsfnews.entity.ArticleStatus;
+import com.fpt.sb.hsfnews.entity.User;
 import com.fpt.sb.hsfnews.repository.ArticleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,5 +61,67 @@ public class ArticleService {
             return 10;
         }
         return Math.min(size, 50);
+    }
+
+    @Transactional
+    public Article createArticle(Article article, User author) {
+        article.setAuthor(author);
+        if (article.getStatus() == null) {
+            article.setStatus(ArticleStatus.DRAFT);
+        }
+        return articleRepository.save(article);
+    }
+
+    @Transactional
+    public Article updateArticle(Long id, Article updatedArticle) {
+        Article existingArticle = articleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Article not found"));
+        
+        existingArticle.setTitle(updatedArticle.getTitle());
+        existingArticle.setSummary(updatedArticle.getSummary());
+        existingArticle.setContent(updatedArticle.getContent());
+        existingArticle.setThumbnail(updatedArticle.getThumbnail());
+        existingArticle.setCategory(updatedArticle.getCategory());
+        existingArticle.setTags(updatedArticle.getTags());
+        
+        return articleRepository.save(existingArticle);
+    }
+
+    @Transactional
+    public void deleteArticle(Long id) {
+        if (!articleRepository.existsById(id)) {
+            throw new RuntimeException("Article not found");
+        }
+        articleRepository.deleteById(id);
+    }
+
+    @Transactional
+    public Article publishArticle(Long id) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Article not found"));
+        article.setStatus(ArticleStatus.PUBLISHED);
+        return articleRepository.save(article);
+    }
+
+    @Transactional
+    public Article setDraftArticle(Long id) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Article not found"));
+        article.setStatus(ArticleStatus.DRAFT);
+        return articleRepository.save(article);
+    }
+
+    public Optional<Article> getArticleById(Long id) {
+        return articleRepository.findById(id);
+    }
+
+    public Page<Article> getAllArticles(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return articleRepository.findAllWithTags(pageable);
+    }
+
+    public Page<Article> getArticlesByAuthor(User author, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return articleRepository.findByAuthorWithTags(author, pageable);
     }
 }

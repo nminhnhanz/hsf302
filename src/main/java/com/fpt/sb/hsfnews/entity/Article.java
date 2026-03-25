@@ -1,6 +1,8 @@
 package com.fpt.sb.hsfnews.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -14,11 +16,16 @@ public class Article {
     private Long id;
 
     @Column(nullable = false)
+    @NotBlank(message = "Title is required")
+    @Size(min = 5, max = 200, message = "Title must be between 5 and 200 characters")
     private String title;
 
     @Column(length = 500)
+    @Size(max = 500, message = "Summary must not exceed 500 characters")
     private String summary;
+    
     @Column(columnDefinition = "nvarchar(max)")
+    @NotBlank(message = "Content is required")
     private String content;
 
     private String thumbnail;

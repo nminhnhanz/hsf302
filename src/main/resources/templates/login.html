@@ -22,7 +22,7 @@
             
             <section th:if="${errMsg}" class="alert alert-danger" role="alert" th:text="${errMsg}"></section>
             
-            <form action="/authen" method="post">
+            <form method="post">
                 <fieldset class="mb-3">
                     <label for="username" class="form-label fw-semibold">Username</label>
                     <input type="text" id="username" name="username" th:value="${username}" class="form-control form-control-lg" th:classappend="${usernameError != null} ? 'is-invalid' : ''" placeholder="Enter your username" autofocus>

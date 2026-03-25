@@ -1,9 +1,28 @@
 <!DOCTYPE html>
-<html th:replace="~{fragments/layout :: page(~{::title}, ~{::#customCss}, ~{::#customJs}, ~{::main})}" xmlns:th="http://www.thymeleaf.org">
+<html th:replace="~{fragments/layout :: page(~{::title}, ~{::#customCss}, ~{::#customJs}, ~{::main})}" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title th:text="${article.title}">Article - DevBlog</title>
     <th:block id="customCss">
         <link rel="stylesheet" th:href="@{/css/article.css}">
+        <style>
+            .comment-reply {
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 12px;
+                margin-top: 8px;
+            }
+            
+            .avatar-circle-sm {
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                font-size: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
     </th:block>
 </head>
 <body>
@@ -37,20 +56,49 @@
                 </section>
             </article>
 
-            <section class="article-shell">
+            <section class="article-shell" id="comments">
                 <h4 class="fw-bold mb-4">Comments</h4>
 
-                <form class="mb-5">
-                    <textarea class="form-control mb-3 bg-light border-0" rows="3" placeholder="Write a comment..." style="border-radius: 12px; padding: 16px;"></textarea>
+                <!-- Success/Error Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Comment Form -->
+                <form th:action="@{/comments}" th:object="${commentForm}" method="post" class="mb-5">
+                    <input type="hidden" name="articleId" th:value="${article.id}">
+                    
+                    <div class="mb-3">
+                        <label for="authorName" class="form-label">Your Name</label>
+                        <input type="text" class="form-control" id="authorName" th:field="*{authorName}" placeholder="Enter your name">
+                        <div th:if="${#fields.hasErrors('authorName')}" class="text-danger small mt-1">
+                            <span th:errors="*{authorName}"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Comment</label>
+                        <textarea class="form-control bg-light border-0" id="content" th:field="*{content}" rows="3" placeholder="Write a comment..." style="border-radius: 12px; padding: 16px;"></textarea>
+                        <div th:if="${#fields.hasErrors('content')}" class="text-danger small mt-1">
+                            <span th:errors="*{content}"></span>
+                        </div>
+                    </div>
+                    
                     <div class="text-end">
-                        <button type="button" class="btn btn-primary fw-medium px-4 rounded-pill">Post Comment</button>
+                        <button type="submit" class="btn btn-primary fw-medium px-4 rounded-pill">Post Comment</button>
                     </div>
                 </form>
 
                 <hr class="text-muted mb-4 opacity-25">
 
-                <div th:if="${article.comments != null and !article.comments.isEmpty()}">
-                    <div class="comment" th:each="c : ${article.comments}">
+                <!-- Comments List -->
+                <div th:if="${parentComments != null and !parentComments.isEmpty()}">
+                    <div class="comment" th:each="c : ${parentComments}">
                         <div class="d-flex align-items-center mb-2">
                             <div class="avatar-circle me-3 text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
                                  th:text="${#strings.substring(c.authorName, 0, 1)}">A</div>
@@ -58,12 +106,82 @@
                                 <div class="comment-author mb-0" th:text="${c.authorName}">Name</div>
                                 <div class="comment-date" th:text="${#temporals.format(c.createdAt, 'MMM dd, yyyy HH:mm')}">Date</div>
                             </div>
+                            <div class="ms-auto">
+                                <!-- Edit Button -->
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" 
+                                        th:onclick="'toggleEditForm(' + ${c.id} + ')'">Edit</button>
+                                <!-- Reply Button -->
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-2" 
+                                        th:onclick="'toggleReplyForm(' + ${c.id} + ')'">Reply</button>
+                                <!-- Delete Button (Admin only) -->
+                                <div class="d-inline" sec:authorize="hasRole('ADMIN')">
+                                    <form th:action="@{/comments/delete/{id}(id=${c.id})}" method="post" 
+                                          onsubmit="return confirm('Are you sure you want to delete this comment?')" class="d-inline">
+                                        <input type="hidden" name="articleId" th:value="${article.id}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
-                        <div class="comment-body ms-5 ps-1" th:text="${c.content}">Content</div>
+                        
+                        <!-- Comment Content -->
+                        <div class="comment-body ms-5 ps-1" th:id="'comment-content-' + ${c.id}" th:text="${c.content}">Content</div>
+                        
+                        <!-- Edit Form -->
+                        <div class="comment-edit-form ms-5 ps-1 mt-2" th:id="'edit-form-' + ${c.id}" style="display: none;">
+                            <form th:action="@{/comments/edit/{id}(id=${c.id})}" method="post" class="mb-0">
+                                <input type="hidden" name="articleId" th:value="${article.id}">
+                                <div class="mb-2">
+                                    <textarea class="form-control" th:id="'edit-content-' + ${c.id}" 
+                                              name="content" rows="2" required
+                                              th:text="${c.content}"></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" 
+                                            th:onclick="'toggleEditForm(' + ${c.id} + ')'">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                                                
+                        <!-- Reply Form -->
+                        <div class="reply-form ms-5 ps-1 mt-3" th:id="'reply-form-' + ${c.id}" style="display: none;">
+                            <form th:action="@{/comments}" method="post" class="mb-0">
+                                <input type="hidden" name="articleId" th:value="${article.id}">
+                                <input type="hidden" name="parentCommentId" th:value="${c.id}">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control" name="authorName" 
+                                           placeholder="Your name" required>
+                                </div>
+                                <div class="mb-2">
+                                    <textarea class="form-control" th:id="'reply-content-' + ${c.id}" 
+                                              name="content" rows="2" placeholder="Write a reply..." required></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" 
+                                            th:onclick="'toggleReplyForm(' + ${c.id} + ')'">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Replies Container -->
+                        <div class="replies-container ms-5 ps-1" th:id="'replies-' + ${c.id}">
+                            <!-- Replies will be loaded here via JavaScript -->
+                        </div>
+                        
+                        <!-- Load Replies Button -->
+                        <div class="ms-5 ps-1 mt-2">
+                            <button type="button" class="btn btn-sm btn-link" 
+                                    th:onclick="'loadReplies(' + ${c.id} + ')'">
+                                View Replies
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div th:if="${article.comments == null or article.comments.isEmpty()}" class="text-muted text-center py-5">
+                <div th:if="${parentComments == null or parentComments.isEmpty()}" class="text-muted text-center py-5">
                     <i class="bi bi-chat-square-text fs-1 mb-3 d-block opacity-50"></i>
                     No comments yet. Be the first to share your thoughts!
                 </div>
@@ -73,6 +191,107 @@
     </div>
 </main>
 
-<th:block id="customJs"></th:block>
+<th:block id="customJs">
+    <script th:inline="javascript">
+        const articleId = /*[[${article.id}]]*/ 0;
+        
+        // Initialize comment functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make toggle functions global
+            window.toggleEditForm = function(commentId) {
+                console.log('Toggle edit form for comment:', commentId);
+                const commentContent = document.getElementById('comment-content-' + commentId);
+                const editForm = document.getElementById('edit-form-' + commentId);
+                
+                if (!commentContent || !editForm) {
+                    console.error('Elements not found:', {commentContent, editForm});
+                    return;
+                }
+                
+                if (editForm.style.display === 'none' || editForm.style.display === '') {
+                    commentContent.style.display = 'none';
+                    editForm.style.display = 'block';
+                    document.getElementById('edit-content-' + commentId).focus();
+                } else {
+                    commentContent.style.display = 'block';
+                    editForm.style.display = 'none';
+                }
+            };
+            
+            window.toggleReplyForm = function(commentId) {
+                console.log('Toggle reply form for comment:', commentId);
+                const replyForm = document.getElementById('reply-form-' + commentId);
+                const allReplyForms = document.querySelectorAll('[id^="reply-form-"]');
+                
+                if (!replyForm) {
+                    console.error('Reply form not found for comment:', commentId);
+                    return;
+                }
+                
+                // Hide all other reply forms
+                allReplyForms.forEach(form => {
+                    if (form.id !== 'reply-form-' + commentId) {
+                        form.style.display = 'none';
+                    }
+                });
+                
+                // Toggle current reply form
+                if (replyForm.style.display === 'none' || replyForm.style.display === '') {
+                    replyForm.style.display = 'block';
+                    const replyContent = document.getElementById('reply-content-' + commentId);
+                    if (replyContent) {
+                        replyContent.focus();
+                    }
+                } else {
+                    replyForm.style.display = 'none';
+                }
+            };
+        });
+        
+        // Load replies for a comment
+        function loadReplies(commentId) {
+            fetch(`/comments/api/replies/${commentId}`)
+                .then(response => response.json())
+                .then(replies => {
+                    const repliesContainer = document.getElementById('replies-' + commentId);
+                    repliesContainer.innerHTML = '';
+                    
+                    replies.forEach(reply => {
+                        const replyHtml = createReplyHtml(reply);
+                        repliesContainer.insertAdjacentHTML('beforeend', replyHtml);
+                    });
+                })
+                .catch(error => console.error('Error loading replies:', error));
+        }
+        
+        // Create reply HTML
+        function createReplyHtml(reply) {
+            return `
+                <div class="comment-reply ms-5 ps-3 border-start border-2 border-light-subtle mt-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="avatar-circle-sm me-2 text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                             style="width: 30px; height: 30px; font-size: 12px;">
+                            ${reply.authorName.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="comment-author mb-0" style="font-size: 14px;">${reply.authorName}</div>
+                            <div class="comment-date" style="font-size: 12px;">
+                                ${new Date(reply.createdAt).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="ms-auto" sec:authorize="hasRole('ADMIN')">
+                            <form action="/comments/delete/${reply.id}" method="post" 
+                                  onsubmit="return confirm('Are you sure you want to delete this reply?')">
+                                <input type="hidden" name="articleId" value="${articleId}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="comment-body" style="font-size: 14px;">${reply.content}</div>
+                </div>
+            `;
+        }
+    </script>
+</th:block>
 </body>
 </html>

@@ -21,45 +21,16 @@ public class AuthenController {
     private final AuthenService authenService;
 
     @GetMapping("/login")
-    public String login(){
+    public String login(@RequestParam(value = "error", required = false) String error,
+                       @RequestParam(value = "logout", required = false) String logout,
+                       Model model){
+        if (error != null) {
+            model.addAttribute("error", "Invalid username or password");
+        }
+        if (logout != null) {
+            model.addAttribute("message", "You have been logged out successfully");
+        }
         return "login";
-    }
-
-    @PostMapping()
-    public String doLogin(RedirectAttributes redirectAttributes, HttpSession session, 
-                          @RequestParam(required = false) String username, 
-                          @RequestParam(required = false) String password){
-        boolean hasError = false;
-
-        if (username == null || username.trim().isEmpty()) {
-            redirectAttributes.addFlashAttribute("usernameError", "Username is required");
-            hasError = true;
-        } else if (username.length() < 5 || username.length() > 50) {
-            redirectAttributes.addFlashAttribute("usernameError", "The name must be from 5 to 50 characters length");
-            hasError = true;
-        }
-
-        if (password == null || password.trim().isEmpty()) {
-            redirectAttributes.addFlashAttribute("passwordError", "Password is required");
-            hasError = true;
-        } else if (password.length() < 6 || password.length() > 100) {
-            redirectAttributes.addFlashAttribute("passwordError", "Password must be from 6 to 100 characters length");
-            hasError = true;
-        }
-
-        if (hasError) {
-            redirectAttributes.addFlashAttribute("username", username);
-            return "redirect:/authen/login";
-        }
-
-        User user = authenService.login(username, password);
-        if(user == null){
-            redirectAttributes.addFlashAttribute("errMsg", "Wrong username or password");
-            redirectAttributes.addFlashAttribute("username", username);
-            return "redirect:/authen/login";
-        }
-        session.setAttribute("loggedInUser", user);
-        return "redirect:/";
     }
 
 
@@ -93,12 +64,6 @@ public class AuthenController {
         }
         
         authenService.register(user);
-        return "redirect:/authen/login";
-    }
-
-    @GetMapping("/logout")
-    public String logout(HttpSession session){
-        session.invalidate();
         return "redirect:/authen/login";
     }
 }

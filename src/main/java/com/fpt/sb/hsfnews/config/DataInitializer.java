@@ -4,6 +4,7 @@ import com.fpt.sb.hsfnews.entity.*;
 import com.fpt.sb.hsfnews.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -15,6 +16,7 @@ public class DataInitializer implements CommandLineRunner {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final ArticleRepository articleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Đọc giá trị từ application.properties
     @Value("${app.seed-demo-data}")
@@ -23,11 +25,13 @@ public class DataInitializer implements CommandLineRunner {
     public DataInitializer(UserRepository userRepository,
                            CategoryRepository categoryRepository,
                            TagRepository tagRepository,
-                           ArticleRepository articleRepository) {
+                           ArticleRepository articleRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
         this.articleRepository = articleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -217,8 +221,8 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 .orElseGet(() -> {
                     User u = new User();
                     u.setUsername("admin");
-                    // Note: In reality, this password must be encrypted (e.g., BCrypt)
-                    u.setPassword("admin123");
+                    // Encode password with BCrypt for code-first approach
+                    u.setPassword(passwordEncoder.encode("admin123"));
                     u.setFullName("Administrator");
                     u.setEmail("admin@hsfnews.com");
                     u.setRole(Role.ADMIN);

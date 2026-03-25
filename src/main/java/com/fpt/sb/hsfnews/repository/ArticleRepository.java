@@ -2,6 +2,7 @@ package com.fpt.sb.hsfnews.repository;
 
 import com.fpt.sb.hsfnews.entity.Article;
 import com.fpt.sb.hsfnews.entity.ArticleStatus;
+import com.fpt.sb.hsfnews.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -16,6 +17,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     Optional<Article> findByTitleIgnoreCase(String title);
 
+    @EntityGraph(attributePaths = {"author", "category", "tags"})
     Optional<Article> findByTitleIgnoreCaseAndStatus(String title, ArticleStatus status);
 
     @EntityGraph(attributePaths = {"author", "category", "tags"})
@@ -25,7 +27,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     Optional<Article> findByIdAndStatus(Long id, ArticleStatus status);
 
     // --- 1. HÀM TÌM KIẾM KHI NGƯỜI DÙNG KHÔNG CHỌN TAG NÀO ---
-    @EntityGraph(attributePaths = {"author", "category"})
+    @EntityGraph(attributePaths = {"author", "category", "tags"})
     @Query("""
             select distinct a
             from Article a
@@ -70,4 +72,15 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("tagIds") List<Long> tagIds,
             Pageable pageable
     );
+
+    @EntityGraph(attributePaths = {"author", "category"})
+    Page<Article> findByAuthor(User author, Pageable pageable);
+
+    @Query("SELECT a FROM Article a")
+    @EntityGraph(attributePaths = {"author", "category", "tags"})
+    Page<Article> findAllWithTags(Pageable pageable);
+
+    @Query("SELECT a FROM Article a WHERE a.author = :author")
+    @EntityGraph(attributePaths = {"author", "category", "tags"})
+    Page<Article> findByAuthorWithTags(@Param("author") User author, Pageable pageable);
 }

@@ -20,7 +20,10 @@
                 <p class="text-muted">Join HSF News today</p>
             </header>
             
-            <form th:action="@{'/authen/register'}" method="POST" th:object="${uObj}">
+            <!-- Error messages -->
+            <div th:if="${errMsg}" class="alert alert-danger" th:text="${errMsg}"></div>
+            
+            <form th:action="@{'/authen/register'}" method="POST" th:object="${uObj}" novalidate>
                 <!-- Hidden fields parameters -->
                 <input type="hidden" id="id" th:field="*{id}">
                 <input type="hidden" id="role" th:field="*{role}">
