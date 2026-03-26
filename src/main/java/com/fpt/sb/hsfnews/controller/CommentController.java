@@ -1,189 +1,270 @@
 package com.fpt.sb.hsfnews.controller;
 
-import com.fpt.sb.hsfnews.entity.Article;
-import com.fpt.sb.hsfnews.entity.Comment;
-import com.fpt.sb.hsfnews.entity.CommentReaction;
-import com.fpt.sb.hsfnews.entity.ReactionType;
+import com.fpt.sb.hsfnews.entity.*;
+import com.fpt.sb.hsfnews.repository.UserRepository;
 import com.fpt.sb.hsfnews.service.ArticleService;
+import com.fpt.sb.hsfnews.service.CommentRealtimeService;
 import com.fpt.sb.hsfnews.service.CommentService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/comments")
+@RequiredArgsConstructor // Sử dụng Lombok để tự động tạo Constructor cho final fields
 public class CommentController {
 
-    @Autowired
-    private CommentService commentService;
+    private final CommentService commentService;
+    private final ArticleService articleService;
+    private final UserRepository userRepository;
+    private final CommentRealtimeService commentRealtimeService;
 
-    @Autowired
-    private ArticleService articleService;
-
-    public static class CommentForm {
-        @NotBlank(message = "Author name is required")
-        @Size(min = 2, max = 100, message = "Author name must be between 2 and 100 characters")
-        private String authorName;
-
-        @NotBlank(message = "Comment content is required")
-        @Size(min = 5, max = 1000, message = "Comment must be between 5 and 1000 characters")
-        private String content;
-
-        private Long parentCommentId;
-
-        public String getAuthorName() {
-            return authorName;
-        }
-
-        public void setAuthorName(String authorName) {
-            this.authorName = authorName;
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
-
-        public Long getParentCommentId() {
-            return parentCommentId;
-        }
-
-        public void setParentCommentId(Long parentCommentId) {
-            this.parentCommentId = parentCommentId;
-        }
-    }
+    // --- VIEW METHODS (Server-side rendering cho Thymeleaf) ---
 
     @PostMapping
-    public String addComment(@Valid @ModelAttribute CommentForm commentForm, 
-                           BindingResult bindingResult,
-                           @RequestParam("articleId") Long articleId,
-                           RedirectAttributes redirectAttributes) {
-        if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute("error", "Please fix the errors in the form");
-            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.commentForm", bindingResult);
-            redirectAttributes.addFlashAttribute("commentForm", commentForm);
-            return "redirect:/articles/" + articleId;
-        }
-
-        Article article = articleService.getPublishedDetail(articleId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-        if (commentForm.getParentCommentId() != null) {
-            // This is a reply
-            Comment parentComment = commentService.getCommentById(commentForm.getParentCommentId());
-            if (parentComment != null) {
-                commentService.createReply(commentForm.getAuthorName(), commentForm.getContent(), article, parentComment);
-                redirectAttributes.addFlashAttribute("success", "Reply added successfully!");
-            }
-        } else {
-            // This is a new comment
-            commentService.createComment(commentForm.getAuthorName(), commentForm.getContent(), article);
-            redirectAttributes.addFlashAttribute("success", "Comment added successfully!");
-        }
-
-        return "redirect:/articles/" + articleId + "#comments";
-    }
-
-    @PostMapping("/edit/{id}")
-    public String editComment(@PathVariable("id") Long commentId,
-                             @Valid @ModelAttribute CommentForm commentForm,
+    public String addComment(@Valid @ModelAttribute("commentForm") CommentForm commentForm,
                              BindingResult bindingResult,
                              @RequestParam("articleId") Long articleId,
+                             @AuthenticationPrincipal UserDetails principal,
                              RedirectAttributes redirectAttributes) {
+
         if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute("error", "Please fix the errors in the form");
-            redirectAttributes.addFlashAttribute("editCommentId", commentId);
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.commentForm", bindingResult);
             redirectAttributes.addFlashAttribute("commentForm", commentForm);
-            return "redirect:/articles/" + articleId;
+            redirectAttributes.addFlashAttribute("error", "Nội dung bình luận không hợp lệ.");
+            return "redirect:/articles/" + articleId + "#comment-section";
         }
 
-        Comment updatedComment = commentService.updateComment(commentId, commentForm.getContent());
-        if (updatedComment != null) {
-            redirectAttributes.addFlashAttribute("success", "Comment updated successfully!");
+        User currentUser = getCurrentUser(principal);
+        Article article = articleService.getArticleById(articleId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bài viết không tồn tại"));
+
+        Comment created;
+        if (commentForm.getParentCommentId() != null) {
+            Comment parentComment = commentService.getCommentById(commentForm.getParentCommentId());
+            created = commentService.createReply(currentUser, commentForm.getContent(), article, parentComment);
+            redirectAttributes.addFlashAttribute("success", "Đã phản hồi bình luận!");
         } else {
-            redirectAttributes.addFlashAttribute("error", "Comment not found!");
+            created = commentService.createComment(currentUser, commentForm.getContent(), article);
+            redirectAttributes.addFlashAttribute("success", "Đã thêm bình luận mới!");
         }
 
-        return "redirect:/articles/" + articleId + "#comments";
+        if (created != null) {
+            commentRealtimeService.publishCommentCreated(created);
+        }
+
+        return "redirect:/articles/" + articleId + "#comment-" + (created != null ? created.getId() : "");
     }
 
     @PostMapping("/delete/{id}")
     public String deleteComment(@PathVariable("id") Long commentId,
-                               @RequestParam("articleId") Long articleId,
-                               RedirectAttributes redirectAttributes) {
-        Comment comment = commentService.getCommentById(commentId);
-        if (comment == null) {
+                                @RequestParam("articleId") Long articleId,
+                                @AuthenticationPrincipal UserDetails principal,
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
+
+        validateOwnership(commentId, principal, authentication);
+        commentService.deleteComment(commentId);
+
+        redirectAttributes.addFlashAttribute("success", "Bình luận đã được xóa.");
+        return "redirect:/articles/" + articleId + "#comment-section";
+    }
+
+    // --- API METHODS (Trả về JSON cho AJAX/Frontend) ---
+
+    @PostMapping("/api")
+    @ResponseBody
+    public ResponseEntity<?> addCommentApi(@Valid @ModelAttribute CommentForm commentForm,
+                                           BindingResult bindingResult,
+                                           @RequestParam("articleId") Long articleId,
+                                           @AuthenticationPrincipal UserDetails principal,
+                                           Authentication authentication) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Dữ liệu không hợp lệ"));
+        }
+
+        User currentUser = getCurrentUser(principal);
+        Article article = articleService.getArticleById(articleId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        Comment created;
+        if (commentForm.getParentCommentId() != null) {
+            Comment parentComment = commentService.getCommentById(commentForm.getParentCommentId());
+            created = commentService.createReply(currentUser, commentForm.getContent(), article, parentComment);
+        } else {
+            created = commentService.createComment(currentUser, commentForm.getContent(), article);
+        }
+
+        commentRealtimeService.publishCommentCreated(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toCommentItemResponse(created, authentication));
+    }
+
+    @PostMapping("/api/delete/{id}")
+    @ResponseBody
+    public ResponseEntity<?> deleteCommentApi(@PathVariable("id") Long commentId,
+                                              @AuthenticationPrincipal UserDetails principal,
+                                              Authentication authentication) {
+
+        validateOwnership(commentId, principal, authentication);
+
+        CommentService.HardDeleteResult deleted = commentService.hardDeleteCommentTree(commentId);
+        if (deleted == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+
+        return ResponseEntity.ok(new ActionResponse(true, "Xóa thành công", commentId, deleted.deletedCommentIds()));
+    }
+
+    @GetMapping("/api/replies/{parentCommentId}")
+    @ResponseBody
+    public List<CommentItemResponse> getReplies(@PathVariable Long parentCommentId,
+                                                Authentication authentication) {
+        return commentService.getRepliesByCommentId(parentCommentId).stream()
+                .map(comment -> toCommentItemResponse(comment, authentication))
+                .collect(Collectors.toList());
+    }
+
+    @PostMapping("/api/edit/{id}")
+    @ResponseBody
+    public ResponseEntity<?> editCommentApi(@PathVariable("id") Long commentId,
+                                            @RequestParam("content") String content,
+                                            @AuthenticationPrincipal UserDetails principal,
+                                            Authentication authentication) {
+        validateOwnership(commentId, principal, authentication);
+        Comment updated = commentService.editComment(commentId, content);
+        if (updated == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-
-        commentService.deleteComment(commentId);
-        redirectAttributes.addFlashAttribute("success", "Comment deleted successfully!");
-        return "redirect:/articles/" + articleId + "#comments";
+        return ResponseEntity.ok(toCommentItemResponse(updated, authentication));
     }
 
-    @PostMapping("/react")
-    @ResponseBody
-    public Map<String, Object> addReaction(@RequestParam("commentId") Long commentId,
-                                         @RequestParam("reactionType") ReactionType reactionType,
-                                         @RequestParam("userName") String userName,
-                                         HttpServletRequest request) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            CommentReaction reaction = commentService.addReaction(commentId, reactionType, userName);
-            List<CommentReaction> reactions = commentService.getReactionsByCommentId(commentId);
-            
-            response.put("success", true);
-            response.put("reactions", reactions);
-            response.put("added", reaction != null);
-            
-            // Count reactions by type
-            Map<String, Long> reactionCounts = new HashMap<>();
-            for (ReactionType type : ReactionType.values()) {
-                reactionCounts.put(type.name(), commentService.getReactionCount(commentId, type));
-            }
-            response.put("reactionCounts", reactionCounts);
-            
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("error", e.getMessage());
+    @PostMapping("/edit/{id}")
+    public String editComment(@PathVariable("id") Long commentId,
+                              @RequestParam("content") String content,
+                              @RequestParam("articleId") Long articleId,
+                              @AuthenticationPrincipal UserDetails principal,
+                              Authentication authentication,
+                              RedirectAttributes redirectAttributes) {
+        validateOwnership(commentId, principal, authentication);
+        Comment updated = commentService.editComment(commentId, content);
+        if (updated == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        
-        return response;
+        redirectAttributes.addFlashAttribute("success", "Bình luận đã được cập nhật.");
+        return "redirect:/articles/" + articleId + "#comment-" + updated.getId();
     }
 
-    @GetMapping("/api/article/{articleId}")
+    @GetMapping("/api/path/{commentId}")
     @ResponseBody
-    public List<Comment> getCommentsByArticle(@PathVariable Long articleId) {
-        return commentService.getCommentsByArticleId(articleId);
+    public CommentPathResponse getCommentPath(@PathVariable Long commentId) {
+        Comment target = commentService.getCommentById(commentId);
+        if (target == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+
+        List<Long> path = commentService.getCommentPathIds(commentId);
+        return new CommentPathResponse(commentId, path);
     }
 
-    @GetMapping("/api/parent/{articleId}")
-    @ResponseBody
-    public List<Comment> getParentCommentsByArticle(@PathVariable Long articleId) {
-        return commentService.getParentCommentsByArticleId(articleId);
+    // --- HELPERS ---
+
+    private void validateOwnership(Long commentId, UserDetails principal, Authentication authentication) {
+        User currentUser = getCurrentUser(principal);
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !commentService.isOwner(commentId, currentUser.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không có quyền này.");
+        }
     }
 
-    @GetMapping("/api/replies/{commentId}")
-    @ResponseBody
-    public List<Comment> getRepliesByComment(@PathVariable Long commentId) {
-        return commentService.getRepliesByCommentId(commentId);
+    private User getCurrentUser(UserDetails principal) {
+        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        return userRepository.findByUsernameIgnoreCase(principal.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     }
+
+    private CommentItemResponse toCommentItemResponse(Comment comment, Authentication authentication) {
+        String currentUsername = authentication != null ? authentication.getName() : null;
+        String authorUsername = "unknown";
+        try {
+            User author = comment.getAuthor();
+            if (author != null && author.getUsername() != null) {
+                authorUsername = author.getUsername();
+            }
+        } catch (RuntimeException ignored) {
+            authorUsername = "unknown";
+        }
+        String articleAuthorUsername = "";
+        Long parentCommentId = null;
+        Long articleId = null;
+        try {
+            if (comment.getParentComment() != null) {
+                parentCommentId = comment.getParentComment().getId();
+            }
+            Article article = comment.getArticle();
+            if (article != null) {
+                articleId = article.getId();
+                User articleAuthor = article.getAuthor();
+                if (articleAuthor != null && articleAuthor.getUsername() != null) {
+                    articleAuthorUsername = articleAuthor.getUsername();
+                }
+            }
+        } catch (RuntimeException ignored) {
+            articleAuthorUsername = "";
+        }
+
+        boolean canEdit = authorUsername.equalsIgnoreCase(currentUsername);
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return new CommentItemResponse(
+                comment.getId(),
+                parentCommentId,
+                articleId,
+                authorUsername,
+                "@" + authorUsername,
+                comment.getContent(),
+                comment.getCreatedAt(),
+                canEdit,
+                canEdit || isAdmin, // canDelete
+                authorUsername.equalsIgnoreCase(articleAuthorUsername),
+                commentService.getDirectReplyCount(comment.getId())
+        );
+    }
+
+    // --- DATA STRUCTURES (DTOs) ---
+
+    public static class CommentForm {
+        @NotBlank(message = "Nội dung bình luận không được để trống")
+        @Size(min = 1, max = 1000, message = "Bình luận từ 1 đến 1000 ký tự")
+        private String content;
+        private Long parentCommentId;
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+        public Long getParentCommentId() { return parentCommentId; }
+        public void setParentCommentId(Long parentCommentId) { this.parentCommentId = parentCommentId; }
+    }
+
+    public record CommentItemResponse(Long id, Long parentCommentId, Long articleId, String authorUsername,
+                                      String authorDisplay, String content, LocalDateTime createdAt,
+                                      boolean canEdit, boolean canDelete, boolean articleAuthor,
+                                      long replyCount) {}
+
+    public record ActionResponse(boolean success, String message, Long commentId, List<Long> deletedCommentIds) {}
+
+    public record CommentPathResponse(Long commentId, List<Long> path) {}
 }

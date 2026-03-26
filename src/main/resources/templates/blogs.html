@@ -95,7 +95,8 @@
                             <p class="muted line-clamp-2" th:text="${a.summary}">Summary</p>
 
                             <div class="d-flex flex-wrap gap-1 mb-2">
-                                <span class="badge text-bg-light border" th:each="t : ${a.tags}" th:text="'#' + ${t.name}">tag</span>
+                                <a class="badge text-bg-light border text-decoration-none" th:each="t : ${a.tags}"
+                                   th:href="@{/blogs(tagIds=${t.id})}" th:text="'#' + ${t.name}">tag</a>
                             </div>
 
                             <a class="small text-decoration-none fw-medium" th:href="@{/articles/{id}(id=${a.id})}">View details →</a>

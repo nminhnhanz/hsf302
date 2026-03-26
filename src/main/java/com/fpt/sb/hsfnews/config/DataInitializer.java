@@ -7,7 +7,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -19,7 +23,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     // Đọc giá trị từ application.properties
-    @Value("${app.seed-demo-data}")
+    @Value("${app.seed-demo-data:false}")
     private boolean seedDemoData;
 
     public DataInitializer(UserRepository userRepository,
@@ -38,19 +42,20 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         // 1. Dữ liệu BẮT BUỘC (System Data): Luôn luôn khởi tạo (VD: Admin)
         User admin = seedAdmin();
+        seedMembers();
 
-        // 2. Kiểm tra cờ: Nếu không bật seed data thì dừng lại tại đây
         if (!seedDemoData) {
             System.out.println("⚠️ The Seeding Demo Data feature is currently OFF. Skip generating Sample Data.");
             return;
         }
 
+        LocalDateTime baseDate = LocalDateTime.now().withHour(9).withMinute(0).withSecond(0).withNano(0);
         System.out.println("✅ The Seeding Demo Data feature is ON. Loading sample data...");
 
         // --- 1. SEED CATEGORIES ---
-        Category springBoot = seedCategory("Spring Boot", "Spring Ecosystem, Spring Boot, Spring Security, JPA, RESTful APIs...");
         Category dsa = seedCategory("DSA", "Data Structures & Algorithms, improving logical thinking and problem-solving skills.");
         Category database = seedCategory("Database", "RDBMS knowledge, query optimization, and database schema design.");
+        Category springBoot = seedCategory("Spring Boot", "Spring framework concepts and application development."); // Đã bổ sung vì bên dưới gọi tới
 
         // --- 2. SEED TAGS ---
         Tag tSpring = seedTag("Spring");
@@ -68,7 +73,6 @@ public class DataInitializer implements CommandLineRunner {
         Tag tTransaction = seedTag("Transaction");
 
         // --- 3. SEED ARTICLES ---
-
         seedArticleIfMissing(
                 "Spring Boot MVC + Thymeleaf: Standard Project Structure for Beginners",
                 "A guide on organizing controller, service, repository folders, and rendering views with Thymeleaf for easy maintenance.",
@@ -93,14 +97,14 @@ public class HomeController {
 }</code></pre>
                 """,
                 "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, springBoot, Set.of(tSpring, tThymeleaf)
+                ArticleStatus.PUBLISHED, admin, springBoot, Set.of(tSpring, tThymeleaf),
+                baseDate.minusDays(4)
         );
 
         seedArticleIfMissing(
                 "The N+1 Query Problem in JPA and How to Fix It with @EntityGraph",
-                "Understand the root cause of the N+1 issue when querying Entity lists and how to resolve it completely.",
+                "A deep dive into common JPA performance issues and efficient data fetching strategies.",
                 """
-                <p>The N+1 Query is one of the most common performance bottlenecks when using Hibernate/JPA.</p>
                 <img src="https://picsum.photos/seed/jpa_content/800/400" alt="Database Queries" class="img-fluid rounded my-4 shadow-sm">
                 <h2>The Cause</h2>
                 <p>It occurs when you fetch a list of parent entities (1 query), and then for each parent, JPA fires another query to fetch the child entities (N queries).</p>
@@ -111,7 +115,8 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 <p>With just one annotation, Spring Data JPA automatically converts it into a <code>LEFT JOIN FETCH</code> at the database level.</p>
                 """,
                 "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, springBoot, Set.of(tSpring, tJpa)
+                ArticleStatus.PUBLISHED, admin, springBoot, Set.of(tSpring, tJpa),
+                baseDate.minusWeeks(2)
         );
 
         seedArticleIfMissing(
@@ -119,15 +124,14 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 "Principles of naming endpoints, using correct HTTP Methods, and JSON response formats.",
                 """
                 <p>A good API needs to be intuitive and strictly follow REST conventions.</p>
-                <img src="https://picsum.photos/seed/api_content/800/400" alt="REST API Diagram" class="img-fluid rounded my-4 shadow-sm">
                 <ul>
-                    <li>Use plural nouns for Endpoints: <code>/api/users</code> instead of <code>/api/getUser</code>.</li>
                     <li>Use the correct HTTP Method: GET (Retrieve), POST (Create), PUT (Update entirely), PATCH (Update partially), DELETE (Remove).</li>
                     <li>Always return the appropriate HTTP Status Code (200 OK, 201 Created, 404 Not Found, 400 Bad Request...).</li>
                 </ul>
                 """,
                 "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, springBoot, Set.of(tSpring, tRest)
+                ArticleStatus.PUBLISHED, admin, springBoot, Set.of(tSpring, tRest),
+                baseDate.minusMonths(1).minusDays(6)
         );
 
         seedArticleIfMissing(
@@ -139,14 +143,13 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 <h2>Common Complexities</h2>
                 <ul>
                     <li><code>O(1)</code>: Looking up an element in a HashMap.</li>
-                    <li><code>O(log N)</code>: Binary Search.</li>
-                    <li><code>O(N)</code>: Traversing an array (For loop).</li>
                     <li><code>O(N log N)</code>: Efficient sorting algorithms like Merge Sort, Quick Sort.</li>
                     <li><code>O(N^2)</code>: Nested loops (Bubble Sort).</li>
                 </ul>
                 """,
                 "https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, dsa, Set.of(tBigO, tAlgorithm)
+                ArticleStatus.PUBLISHED, admin, dsa, Set.of(tBigO, tAlgorithm),
+                baseDate.minusMonths(2).minusDays(12)
         );
 
         seedArticleIfMissing(
@@ -158,10 +161,10 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 <h2>1. Breadth-First Search (BFS)</h2>
                 <p>Explores the graph layer by layer, utilizing a <b>Queue</b>. Excellent for finding the shortest path on an unweighted graph.</p>
                 <h2>2. Depth-First Search (DFS)</h2>
-                <p>Explores as far as possible along each branch before backtracking, typically implemented using <b>Recursion</b> or a <b>Stack</b>. Great for maze generation or cycle detection.</p>
                 """,
                 "https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, dsa, Set.of(tAlgorithm)
+                ArticleStatus.PUBLISHED, admin, dsa, Set.of(tAlgorithm),
+                baseDate.minusMonths(3).minusDays(3)
         );
 
         seedArticleIfMissing(
@@ -173,15 +176,15 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 <h2>Pros</h2>
                 <p>Significantly speeds up <code>SELECT</code> queries, especially those with <code>WHERE</code> and <code>ORDER BY</code> clauses.</p>
                 <h2>Cons</h2>
-                <p>Every time you <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code>, the database has to rebuild the Index tree. Therefore, having too many indexes will severely slow down write operations. Indexes also consume physical disk space.</p>
                 """,
-                "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, database, Set.of(tSql, tIndex)
+                "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=80", // Reused an image URL here
+                ArticleStatus.PUBLISHED, admin, database, Set.of(tSql, tIndex),
+                baseDate.minusMonths(5)
         );
 
         seedArticleIfMissing(
                 "What are ACID Properties in Database Transactions?",
-                "Explaining the 4 properties: Atomicity, Consistency, Isolation, and Durability in RDBMS.",
+                "An overview of ACID principles ensuring database transaction reliability.",
                 """
                 <p>To ensure data integrity (especially in banking and payment systems), Databases rely on the ACID concept.</p>
                 <img src="https://picsum.photos/seed/acid_content/800/400" alt="Server Room" class="img-fluid rounded my-4 shadow-sm">
@@ -193,28 +196,33 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                 </ul>
                 """,
                 "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.PUBLISHED, admin, database, Set.of(tSql, tTransaction)
+                ArticleStatus.PUBLISHED, admin, database, Set.of(tSql, tTransaction),
+                baseDate.minusMonths(7).minusDays(8)
         );
 
         seedArticleIfMissing(
-                "[Draft] Plan for the upcoming Spring Security basics series",
-                "This article is currently being drafted and is not yet published.",
-                "<p>Expected content:</p><img src=\"https://picsum.photos/seed/draft_content/800/400\" alt=\"Draft Info\" class=\"img-fluid rounded my-4 shadow-sm\"><ul><li>Spring Security Architecture</li><li>Form Login</li><li>JWT Authentication</li><li>Method Security</li></ul>",
+                "Spring Security Basics (Draft)",
+                "A draft post to explore Spring Security configurations.",
+                "<p>Coming soon...</p>",
                 "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=1200&q=80",
-                ArticleStatus.DRAFT, admin, springBoot, Set.of(tSpring, tSecurity)
+                ArticleStatus.DRAFT, admin, springBoot, Set.of(tSpring, tSecurity),
+                baseDate.minusDays(1)
         );
 
         String[] dbTopics = {"Normalization", "NoSQL vs SQL", "Connection Pooling", "Stored Procedures", "Triggers"};
         for (int i = 0; i < dbTopics.length; i++) {
             seedArticleIfMissing(
-                    "Deep dive into " + dbTopics[i] + " in Databases",
+                    dbTopics[i] + " Explained",
                     "A short article explaining the core concepts of " + dbTopics[i] + " to improve your database design mindset.",
                     "<p>This is a detailed post about <strong>" + dbTopics[i] + "</strong>. Happy coding!</p><img src=\"https://picsum.photos/seed/dynamic_" + i + "/800/400\" alt=\"Database topic\" class=\"img-fluid rounded my-4 shadow-sm\">",
                     "https://picsum.photos/seed/db" + i + "/1200/600",
-                    ArticleStatus.PUBLISHED, admin, database, Set.of(tSql)
+                    ArticleStatus.PUBLISHED, admin, database, Set.of(tSql),
+                    baseDate.minusMonths(8 + i).minusDays((long) i * 4)
             );
         }
     }
+
+    // --- HELPER METHODS ---
 
     private User seedAdmin() {
         return userRepository.findByUsernameIgnoreCase("admin")
@@ -228,6 +236,28 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                     u.setRole(Role.ADMIN);
                     return userRepository.save(u);
                 });
+    }
+
+    private void seedMembers() {
+        userRepository.findByUsernameIgnoreCase("member01").orElseGet(() -> {
+            User u = new User();
+            u.setUsername("member01");
+            u.setPassword(passwordEncoder.encode("member123"));
+            u.setFullName("Member 01");
+            u.setEmail("member01@hsfnews.com");
+            u.setRole(Role.MEMBER);
+            return userRepository.save(u);
+        });
+
+        userRepository.findByUsernameIgnoreCase("member02").orElseGet(() -> {
+            User u = new User();
+            u.setUsername("member02");
+            u.setPassword(passwordEncoder.encode("member123"));
+            u.setFullName("Member 02");
+            u.setEmail("member02@hsfnews.com");
+            u.setRole(Role.MEMBER);
+            return userRepository.save(u);
+        });
     }
 
     private Category seedCategory(String name, String description) {
@@ -256,8 +286,14 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
                                       ArticleStatus status,
                                       User author,
                                       Category category,
-                                      Set<Tag> tags) {
-        if (articleRepository.findByTitleIgnoreCase(title).isPresent()) {
+                                      Set<Tag> tags,
+                                      LocalDateTime createdAt) {
+
+        var existing = articleRepository.findByTitleIgnoreCase(title);
+        if (existing.isPresent()) {
+            Article article = existing.get();
+            article.setCreatedAt(createdAt);
+            articleRepository.save(article);
             return;
         }
 
@@ -270,19 +306,23 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
         a.setAuthor(author);
         a.setCategory(category);
         a.setTags(new HashSet<>(tags));
+        a.setCreatedAt(createdAt);
 
         if (status == ArticleStatus.PUBLISHED) {
             List<Comment> comments = new ArrayList<>();
 
+            User member1 = userRepository.findByUsernameIgnoreCase("member01").orElse(author);
+            User member2 = userRepository.findByUsernameIgnoreCase("member02").orElse(author);
+
             Comment c1 = new Comment();
-            c1.setAuthorName("Dev Fresher");
+            c1.setAuthor(member1); // Ánh xạ lại user cho comment
             c1.setContent("The article is very easy to understand, looking forward to more posts like this!");
             c1.setArticle(a);
             comments.add(c1);
 
             if (title.toLowerCase().contains("spring") || title.toLowerCase().contains("jpa")) {
                 Comment c2 = new Comment();
-                c2.setAuthorName("Senior Java");
+                c2.setAuthor(member2);
                 c2.setContent("Quick tip: Be careful when using EntityGraph combined with pagination, sometimes Hibernate will pull the entire DB into memory (in-memory pagination) before slicing the list!");
                 c2.setArticle(a);
                 comments.add(c2);
@@ -293,5 +333,4 @@ Page&lt;Article&gt; findAllWithDetails(Pageable pageable);</code></pre>
 
         articleRepository.save(a);
     }
-
 }

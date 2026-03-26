@@ -12,39 +12,44 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String authorName;
-
     @Column(columnDefinition = "TEXT")
     private String content;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "article_id")
     private Article article;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
     private Comment parentComment;
 
     @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Comment> replies;
 
-    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<CommentReaction> reactions;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "replaced_by_id")
+    private Comment replacedBy;
+    // --- LIFECYCLE CALLBACKS ---
 
     @PrePersist
-    public void prePersist(){
+    public void prePersist() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
     }
 
     @PreUpdate
-    public void preUpdate(){
+    public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    // --- GETTERS AND SETTERS ---
 
     public Long getId() {
         return id;
@@ -54,20 +59,20 @@ public class Comment {
         this.id = id;
     }
 
-    public String getAuthorName() {
-        return authorName;
-    }
-
-    public void setAuthorName(String authorName) {
-        this.authorName = authorName;
-    }
-
     public String getContent() {
         return content;
     }
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public User getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(User author) {
+        this.author = author;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -110,15 +115,11 @@ public class Comment {
         this.replies = replies;
     }
 
-    public List<CommentReaction> getReactions() {
-        return reactions;
+    public Comment getReplacedBy() {
+        return replacedBy;
     }
 
-    public void setReactions(List<CommentReaction> reactions) {
-        this.reactions = reactions;
-    }
-
-    public boolean isReply() {
-        return parentComment != null;
+    public void setReplacedBy(Comment replacedBy) {
+        this.replacedBy = replacedBy;
     }
 }

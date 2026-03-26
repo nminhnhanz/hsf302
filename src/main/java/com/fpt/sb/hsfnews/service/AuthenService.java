@@ -9,6 +9,14 @@ public interface AuthenService {
         public boolean isUserExist(String username);
         public boolean isEmailExist(String email);
 
+        default boolean existsByUsername(String username) {
+                return isUserExist(username);
+        }
+
+        default boolean existsByEmail(String email) {
+                return isEmailExist(email);
+        }
+
 
 
 }

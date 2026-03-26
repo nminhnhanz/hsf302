@@ -1,5 +1,6 @@
 package com.fpt.sb.hsfnews.controller;
 
+import com.fpt.sb.hsfnews.entity.Comment;
 import com.fpt.sb.hsfnews.service.ArticleService;
 import com.fpt.sb.hsfnews.service.CategoryService;
 import com.fpt.sb.hsfnews.service.CommentService;
@@ -10,7 +11,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class BlogController {
@@ -67,9 +70,16 @@ public class BlogController {
     public String detail(@PathVariable("id") Long id, Model model) {
         var article = articleService.getPublishedDetail(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        List<Comment> parentComments = commentService.getParentCommentsByArticleId(id);
+        List<Long> parentIds = parentComments.stream().map(Comment::getId).toList();
+        Map<Long, Long> replyCounts = parentIds.isEmpty()
+                ? Collections.emptyMap()
+                : commentService.countRepliesByParentIds(parentIds);
         
         model.addAttribute("article", article);
-        model.addAttribute("parentComments", commentService.getParentCommentsByArticleId(id));
+        model.addAttribute("parentComments", parentComments);
+        model.addAttribute("replyCounts", replyCounts);
         model.addAttribute("commentForm", new com.fpt.sb.hsfnews.controller.CommentController.CommentForm());
         return "article-detail";
     }

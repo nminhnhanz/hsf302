@@ -28,6 +28,7 @@ public class Article {
     @NotBlank(message = "Content is required")
     private String content;
 
+    @Column(columnDefinition = "nvarchar(max)")
     private String thumbnail;
 
     private int views = 0;

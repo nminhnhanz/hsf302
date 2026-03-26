@@ -1,3 +1,7 @@
+            if (!selectedTags.find(t => t.id == picked.id) && selectedTags.length < 3) {
+        const q = (categoryInput.value || '').trim();
+        if (q.length < 1) { hideSuggestions(categorySuggestions); return; }
+        const items = await fetchJson(`/api/categories?q=${encodeURIComponent(q)}&limit=8`);
 function debounce(fn, wait) {
     let t;
     return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait); };
@@ -36,6 +40,7 @@ function hideSuggestions(box) {
 document.addEventListener('DOMContentLoaded', () => {
     // CATEGORY
     const categoryInput = document.getElementById('categoryInput');
+    let cachedCategories = [];
     const categoryHidden = document.getElementById('categoryHidden');
     const initialCategoryName = document.getElementById('initialCategoryName')?.value;
     const categorySelected = document.getElementById('categorySelected');
@@ -51,9 +56,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×';
         x.addEventListener('click', () => { categoryHidden.value = ''; categoryInput.value = ''; renderCategoryChip('', ''); });
         chip.appendChild(x); categorySelected.appendChild(chip);
+    async function ensureAllCategories() {
+        if (cachedCategories.length > 0) return cachedCategories;
+        cachedCategories = await fetchJson('/api/categories?q=&limit=500');
+        return cachedCategories;
     }
 
-    if (categoryHidden && categoryHidden.value && initialCategoryName) renderCategoryChip(categoryHidden.value, initialCategoryName);
+    }
+        const q = (categoryInput.value || '').trim().toLowerCase();
+        const all = await ensureAllCategories();
+        const items = q.length < 1
+            ? all
+            : all.filter(it => (it.name || '').toLowerCase().includes(q));
 
     const runCategoryLookup = debounce(async () => {
         const q = (categoryInput.value || '').trim();
@@ -62,6 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showSuggestions(categorySuggestions, items, (picked) => {
             categoryHidden.value = picked.id; categoryInput.value = '';
             renderCategoryChip(picked.id, picked.name); hideSuggestions(categorySuggestions);
+        categoryInput.addEventListener('focus', async () => {
+            await ensureAllCategories();
+            runCategoryLookup();
+        });
         });
     }, 300);
 
@@ -98,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncTagsHidden(); renderTagChips();
 
     const runTagLookup = debounce(async () => {
-        const q = (tagInput.value || '').trim();
+            if (!selectedTags.find(t => String(t.id) === String(picked.id)) && selectedTags.length < 3) {
         if (q.length < 1) { hideSuggestions(tagSuggestions); return; }
         const items = await fetchJson(`/api/tags?q=${encodeURIComponent(q)}&limit=8`);
         showSuggestions(tagSuggestions, items, (picked) => {

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="sidebar(active)">
+    <div class="list-group shadow-sm">
+        <a th:href="@{/admin/dashboard}"
+           class="list-group-item list-group-item-action"
+           th:classappend="${active == 'dashboard'} ? 'active'">Dashboard</a>
+        <a th:href="@{/admin/articles}"
+           class="list-group-item list-group-item-action"
+           th:classappend="${active == 'articles'} ? 'active'">Manage Articles</a>
+        <a th:href="@{/admin/categories}"
+           class="list-group-item list-group-item-action"
+           th:classappend="${active == 'categories'} ? 'active'">Manage Categories</a>
+        <a th:href="@{/admin/tags}"
+           class="list-group-item list-group-item-action"
+           th:classappend="${active == 'tags'} ? 'active'">Manage Tags</a>
+    </div>
+</div>
+</body>
+</html>
+
+
+

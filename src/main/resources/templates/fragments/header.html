@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-<div th:fragment="header">
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+<div th:fragment="header" class="sticky-top" style="z-index: 1050;">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold" th:href="@{/}">DevBlog</a>
 
@@ -13,21 +13,16 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-3">
-             </li>-->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Categories
                         </a>
                         <ul class="dropdown-menu">
                             <li th:each="c : ${categories}">
-                                <a class="dropdown-item"
-                                   th:href="@{/blogs(categoryId=${c.id})}"
-                                   th:text="${c.name}">Category</a>
+                                <a class="dropdown-item" th:href="@{/blogs(categoryId=${c.id})}" th:text="${c.name}">Category</a>
                             </li>
                         </ul>
                     </li>
-
-
                 </ul>
 
                 <form class="d-flex me-auto" th:action="@{/blogs}" method="get">
@@ -36,62 +31,60 @@
                     <button class="btn btn-outline-primary" type="submit">Search</button>
                 </form>
 
-                <!-- Bắt đầu: Nút tạo bài viết (Chỉ dành cho ADMIN) -->
-                <div th:if="${session.loggedInUser != null and session.loggedInUser.role.name() == 'ADMIN'}" class="me-3">
-                    <a class="btn btn-success btn-sm d-flex align-items-center" th:href="@{'/blogs/create'}">
-                        <i class="me-1 d-inline-block text-center" style="width: 16px;">
-                            <!-- SVG Icon: Plus-circle -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
-                              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-                              <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-                            </svg>
-                        </i> New Post
-                    </a>
-                </div>
-
                 <div class="d-flex gap-2 align-items-center">
-
-                    <th:block th:if="${session.loggedInUser == null}">
-                        <a class="btn btn-outline-secondary btn-sm" th:href="@{'/authen/login'}">Login</a>
-                        <a class="btn btn-primary btn-sm" th:href="@{'/authen/register'}">Register</a>
+                    <th:block sec:authorize="isAnonymous()">
+                        <a class="btn btn-outline-primary btn-sm" th:href="@{/authen/login}">Login</a>
+                        <a class="btn btn-primary btn-sm" th:href="@{/authen/register}">Register</a>
                     </th:block>
 
+                    <div sec:authorize="isAuthenticated()" class="nav-item dropdown">
+                        <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell" style="font-size: 1.2rem;"></i>
+                            <span id="notificationBadge"
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                  th:classappend="${headerUnreadCount > 0} ? '' : ' d-none'"
+                                  th:text="${headerUnreadCount}">0</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="min-width: 320px; max-height: 360px; overflow: auto;">
+                            <li class="dropdown-header">Notifications</li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li id="notificationEmpty" class="px-3 py-2 text-muted small"
+                                th:classappend="${headerNotifications != null and !headerNotifications.isEmpty()} ? ' d-none' : ''">No notifications yet</li>
+                            <li>
+                                <ul id="notificationList" class="list-unstyled mb-0">
+                                    <li th:each="n : ${headerNotifications}">
+                                        <a class="dropdown-item py-2"
+                                           th:classappend="${n.read} ? ' text-muted' : (${n.type == 'ADMIN'} ? ' text-warning' : ' text-primary')"
+                                           th:href="${n.articleId != null ? '/articles/' + n.articleId + (n.commentId != null ? '?focusCommentId=' + n.commentId : '') + '#comments' : '#'}"
+                                           th:attr="data-notification-id=${n.id},data-read=${n.read}">
+                                            <div class="small text-muted mb-1"
+                                                 th:text="${'@' + n.actorUsername + (n.createdAt != null ? ' - ' + #temporals.format(n.createdAt, 'dd/MM/yyyy HH:mm') : '')}">@user</div>
+                                            <div class="small"><span class="fw-semibold">Notification:</span> <span th:text="${n.message}">Message</span></div>
+                                            <div class="small text-muted"><span class="fw-semibold">Article:</span> <span th:text="${n.articleId != null ? 'Article #' + n.articleId : 'Unknown article'}">Article</span></div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
 
-                    <div th:if="${session.loggedInUser != null}" class="nav-item dropdown">
+                    <div sec:authorize="isAuthenticated()" class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center text-decoration-none" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0;">
-
-                            <img th:src="@{'https://ui-avatars.com/api/?name=' + ${session.loggedInUser.fullName} + '&background=random&color=fff&size=36&bold=true&rounded=true'}" alt="Profile" class="rounded-circle me-2 shadow-sm" style="width: 36px; height: 36px;">
-                            <span class="fw-semibold text-dark me-1" th:text="${session.loggedInUser.fullName}">Tên Người Dùng</span>
+                            <img th:src="@{'https://ui-avatars.com/api/?name=' + ${#authentication.name} + '&background=2563eb&color=fff&size=36&bold=true&rounded=true'}"
+                                 alt="Profile" class="rounded-circle me-2 shadow-sm" style="width: 36px; height: 36px;">
+                            <span class="fw-semibold text-dark me-1" th:text="${#authentication.name}">Username</span>
                         </a>
 
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3" style="min-width: 220px; border-radius: 12px;">
-                            <li>
-                                <div class="px-4 py-2 text-muted">
-                                    <small class="d-block text-uppercase fw-bold text-primary mb-1" style="letter-spacing: 0.5px;" th:text="${session.loggedInUser.role}">VAI TRÒ</small>
-                                    <small th:text="${session.loggedInUser.email}">email@example.com</small>
-                                </div>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item py-2" th:href="@{/admin/dashboard}">Dashboard</a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item py-2" th:href="@{/admin/articles}">Manage Articles</a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item py-2" href="#">
-                                    <i class="me-2 text-primary d-inline-block text-center" style="width: 20px;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                                          <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-2.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
-                                        </svg>
-                                    </i>My Profile
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item text-danger py-2" th:href="@{'/authen/logout'}">
-                                    <i class="me-2 d-inline-block text-center" style="width: 20px;">
-                                        <!-- SVG Icon: Logout -->
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-right" viewBox="0 0 16 16">
-                                          <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/>
-                                          <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-                                        </svg>
-                                    </i>Logout
-                                </a>
+                                <a class="dropdown-item text-danger py-2" th:href="@{/authen/logout}">Logout</a>
                             </li>
                         </ul>
                     </div>
@@ -100,6 +93,243 @@
         </div>
     </nav>
 </div>
+
+<script th:inline="javascript" sec:authorize="isAuthenticated()">
+    (function () {
+        const notificationsApiUrl = /*[[@{/notifications/api}]]*/ '/notifications/api';
+        const initialUnreadCount = /*[[${headerUnreadCount}]]*/ 0;
+        const badge = document.getElementById('notificationBadge');
+        const list = document.getElementById('notificationList');
+        const empty = document.getElementById('notificationEmpty');
+        let unreadCount = Number(initialUnreadCount) || 0;
+
+        function updateBadge() {
+            if (!badge) {
+                return;
+            }
+            if (unreadCount > 0) {
+                badge.textContent = String(unreadCount);
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        }
+
+        function destinationHref(payload) {
+            if (!payload || !payload.articleId) {
+                return '#';
+            }
+            const url = new URL(`/articles/${payload.articleId}`, window.location.origin);
+            if (payload.commentId) {
+                url.searchParams.set('focusCommentId', payload.commentId);
+            }
+            url.hash = 'comments';
+            return url.pathname + url.search + url.hash;
+        }
+
+        function truncateText(value, maxLength) {
+            const text = value || '';
+            if (text.length <= maxLength) {
+                return text;
+            }
+            return text.slice(0, Math.max(0, maxLength - 1)).trimEnd() + '...';
+        }
+
+        function parseNotificationContent(payload) {
+            const fallbackMessage = 'You have a new notification';
+            const rawMessage = payload && payload.message ? payload.message : fallbackMessage;
+            const articleMatch = rawMessage.match(/(?:\bin\b|\bon\b)\s+'([^']+)'/i);
+            const articleTitle = articleMatch && articleMatch[1]
+                ? articleMatch[1]
+                : (payload && payload.articleId ? `Article #${payload.articleId}` : 'Unknown article');
+
+            let shortMessage = rawMessage;
+            if (articleMatch && articleMatch.index > 0) {
+                shortMessage = rawMessage.slice(0, articleMatch.index).trim();
+            }
+
+            if (!shortMessage) {
+                shortMessage = fallbackMessage;
+            }
+
+            return {
+                message: truncateText(shortMessage, 80),
+                articleTitle: truncateText(articleTitle, 70)
+            };
+        }
+
+        function formatCreatedAt(payload) {
+            if (!payload || !payload.createdAt) {
+                return '';
+            }
+            const date = new Date(payload.createdAt);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+            return date.toLocaleString();
+        }
+
+        function renderNotification(payload, colorClass, prepend) {
+            if (!list) return;
+            if (empty) {
+                empty.classList.add('d-none');
+            }
+
+            const li = document.createElement('li');
+            const actor = payload && payload.actorUsername ? payload.actorUsername : 'Someone';
+            const itemClass = payload && payload.read ? 'dropdown-item py-2 text-muted' : `dropdown-item py-2 ${colorClass}`;
+            const notificationId = payload && payload.id ? payload.id : (payload && payload.notificationId ? payload.notificationId : '');
+            if (notificationId) {
+                const existing = list.querySelector(`a[data-notification-id="${notificationId}"]`);
+                if (existing) {
+                    return;
+                }
+            }
+            const parsed = parseNotificationContent(payload);
+
+            const anchor = document.createElement('a');
+            anchor.className = itemClass;
+            anchor.href = destinationHref(payload);
+            anchor.setAttribute('data-notification-id', String(notificationId));
+            anchor.setAttribute('data-read', String(!!(payload && payload.read)));
+
+            const meta = document.createElement('div');
+            meta.className = 'small text-muted mb-1';
+            const createdAtText = formatCreatedAt(payload);
+            meta.textContent = createdAtText ? `@${actor} - ${createdAtText}` : `@${actor}`;
+
+            const messageLine = document.createElement('div');
+            messageLine.className = 'small';
+            messageLine.innerHTML = '<span class="fw-semibold">Notification:</span> ';
+            messageLine.appendChild(document.createTextNode(parsed.message));
+
+            const articleLine = document.createElement('div');
+            articleLine.className = 'small text-muted';
+            articleLine.innerHTML = '<span class="fw-semibold">Article:</span> ';
+            articleLine.appendChild(document.createTextNode(parsed.articleTitle));
+
+            anchor.appendChild(meta);
+            anchor.appendChild(messageLine);
+            anchor.appendChild(articleLine);
+            li.appendChild(anchor);
+
+            if (prepend) {
+                list.prepend(li);
+            } else {
+                list.appendChild(li);
+            }
+        }
+
+        function loadInitialNotifications() {
+            fetch(notificationsApiUrl, {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => response.ok ? response.json() : Promise.reject(new Error('Load notifications failed')))
+                .then(data => {
+                    unreadCount = data && typeof data.unreadCount === 'number' ? data.unreadCount : 0;
+                    updateBadge();
+                    if (!list) {
+                        return;
+                    }
+                    list.innerHTML = '';
+                    const items = data && data.items ? data.items : [];
+                    if (items.length === 0) {
+                        if (empty) {
+                            empty.classList.remove('d-none');
+                        }
+                        return;
+                    }
+                    items.forEach(item => {
+                        const itemColor = item && item.type === 'ADMIN' ? 'text-warning' : 'text-primary';
+                        renderNotification(item, itemColor, false);
+                    });
+                })
+                .catch(err => console.warn('Notification bootstrap failed', err));
+        }
+
+        function markAsRead(notificationId) {
+            if (!notificationId) {
+                return Promise.resolve();
+            }
+            return fetch(`${notificationsApiUrl}/${notificationId}/read`, {
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+                .then(response => response.ok ? response.json() : Promise.reject(new Error('Mark as read failed')))
+                .then(data => {
+                    unreadCount = data && typeof data.unreadCount === 'number' ? data.unreadCount : Math.max(0, unreadCount - 1);
+                    updateBadge();
+                    return data;
+                })
+                .catch(() => {
+                    unreadCount = Math.max(0, unreadCount - 1);
+                    updateBadge();
+                    return null;
+                });
+        }
+
+        function markNotificationItemAsRead(anchor) {
+            if (!anchor) {
+                return;
+            }
+            anchor.setAttribute('data-read', 'true');
+            anchor.classList.add('text-muted');
+            anchor.classList.remove('text-primary');
+            anchor.classList.remove('text-warning');
+        }
+
+        function navigateToNotificationTarget(href) {
+            if (!href || href === '#') {
+                return;
+            }
+
+            const targetUrl = new URL(href, window.location.origin);
+            const targetPath = targetUrl.pathname + targetUrl.search;
+            const sameArticlePage = window.location.pathname === targetUrl.pathname;
+
+            if (sameArticlePage && typeof window.hsfFocusCommentFromUrl === 'function') {
+                const currentUrl = new URL(window.location.href);
+                const targetFocusId = targetUrl.searchParams.get('focusCommentId');
+                if (targetFocusId) {
+                    currentUrl.searchParams.set('focusCommentId', targetFocusId);
+                } else {
+                    currentUrl.searchParams.delete('focusCommentId');
+                }
+                currentUrl.hash = targetUrl.hash || '#comments';
+                window.history.replaceState({}, '', currentUrl.pathname + currentUrl.search + currentUrl.hash);
+                window.hsfFocusCommentFromUrl();
+                return;
+            }
+
+            window.location.href = targetPath + targetUrl.hash;
+        }
+
+        if (list) {
+            list.addEventListener('click', function (event) {
+                const target = event.target && event.target.closest ? event.target.closest('a[data-notification-id]') : null;
+                if (!target) {
+                    return;
+                }
+                const notificationId = target.getAttribute('data-notification-id');
+                const href = target.getAttribute('href') || '#';
+                const alreadyRead = target.getAttribute('data-read') === 'true';
+                event.preventDefault();
+                markAsRead(notificationId).finally(function () {
+                    if (!alreadyRead) {
+                        markNotificationItemAsRead(target);
+                    }
+                    navigateToNotificationTarget(href);
+                });
+            });
+        }
+
+        loadInitialNotifications();
+        setInterval(loadInitialNotifications, 15000);
+    })();
+</script>
 </body>
 </html>
 

@@ -26,9 +26,8 @@
             <form th:action="@{'/authen/register'}" method="POST" th:object="${uObj}" novalidate>
                 <!-- Hidden fields parameters -->
                 <input type="hidden" id="id" th:field="*{id}">
-                <input type="hidden" id="role" th:field="*{role}">
-                <input type="hidden" id="createdAt" th:value="*{createdAt}">
-                
+                <input type="hidden" id="role" name="role" value="MEMBER">
+
                 <fieldset class="mb-3">
                     <label for="username" class="form-label fw-semibold">Username</label>
                     <input type="text" id="username" th:field="*{username}" class="form-control form-control-lg" th:classappend="${#fields.hasErrors('username')} ? 'is-invalid' : ''" placeholder="Choose a username" autofocus>
@@ -52,7 +51,15 @@
                     <input type="password" id="password" th:field="*{password}" class="form-control form-control-lg" th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''" placeholder="Create a strong password">
                     <div class="invalid-feedback fw-medium" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
                 </fieldset>
-                
+
+                <fieldset class="mb-4">
+                    <label for="confirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-control form-control-lg"
+                           th:classappend="${confirmPasswordError != null} ? 'is-invalid' : ''"
+                           placeholder="Re-enter your password">
+                    <div class="invalid-feedback fw-medium" th:if="${confirmPasswordError != null}" th:text="${confirmPasswordError}"></div>
+                </fieldset>
+
                 <button type="submit" class="btn btn-primary btn-lg w-100 mb-3 fw-bold">Register</button>
                 
                 <footer class="text-center mt-3">

@@ -1,26 +1,124 @@
 <!DOCTYPE html>
-<html th:replace="~{fragments/layout :: page(~{::title}, ~{::#customCss}, ~{::#customJs}, ~{::main})}" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html th:replace="~{fragments/layout :: page(~{::title}, ~{::#customCss}, ~{::#customJs}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title th:text="${article.title}">Article - DevBlog</title>
     <th:block id="customCss">
         <link rel="stylesheet" th:href="@{/css/article.css}">
         <style>
-            .comment-reply {
-                background: #f8f9fa;
+            /* Box bình luận */
+            .comment {
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
                 border-radius: 8px;
-                padding: 12px;
-                margin-top: 8px;
+                transition: all 0.3s ease;
             }
-            
-            .avatar-circle-sm {
-                width: 30px;
-                height: 30px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                font-size: 12px;
-                display: flex;
+
+            .comment-reply {
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+
+            /* === CẤU TRÚC KẾT NỐI (TREE CONNECTOR) Ở ĐẦU ĐƯỜNG THẲNG === */
+
+            /* Thẻ bọc danh sách Reply */
+            .thread-children {
+                margin-left: 48px;
+                padding-top: 32px; /* ĐÃ TĂNG LÊN 32PX: Cho khoảng trống giữa 2 comment rộng rãi hơn */
+                position: relative;
+            }
+
+            /* Ép bình luận con đầu tiên không tự đẩy margin */
+            .replies-container > .comment-reply-thread:first-child {
+                margin-top: 0 !important;
+            }
+
+            /* 1. Tuyến kết nối cho Bình luận gốc */
+            .thread-level-root > .thread-children.has-tree::before {
+                content: "";
+                position: absolute;
+                left: -13px;
+                top: 0; /* ĐÃ SỬA: Bắt đầu ngay từ dưới viền comment cha, không đâm ngược lên nữa */
+                bottom: 10px;
+                width: 2px;
+                background: #d1d5db;
+                border-radius: 2px;
+                z-index: 1;
+            }
+
+            /* 2. Tuyến kết nối cho Bình luận trả lời */
+            .thread-level-reply > .thread-children.has-tree::before {
+                content: "";
+                position: absolute;
+                left: -18px;
+                top: 0; /* ĐÃ SỬA: Bắt đầu ngay từ dưới viền comment cha */
+                bottom: 10px;
+                width: 2px;
+                background: #d1d5db;
+                border-radius: 2px;
+                z-index: 1;
+            }
+
+            /* Hộp chứa nút bấm - Dịch xuống dưới */
+            .toggle-box {
+                position: absolute;
+                top: 16px; /* ĐÃ SỬA: Dịch tâm icon xuống 16px, cách xa hoàn toàn viền comment */
+                left: 0;
+                width: 0;
+                height: 0;
+                margin: 0;
+                z-index: 3;
+            }
+
+            /* Nút tròn Toggle */
+            .btn-reply-toggle {
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background-color: #ffffff;
+                border: 1px solid #d1d5db;
+                color: #6b7280;
+                padding: 0;
+                cursor: pointer;
+                transition: all 0.2s;
+                position: absolute;
+                top: 0;
+                transform: translate(-50%, -50%);
+            }
+
+            .btn-reply-toggle:hover {
+                background-color: #f3f4f6;
+                color: #0d6efd;
+                border-color: #0d6efd;
+            }
+
+            .btn-reply-toggle svg {
+                width: 14px;
+                height: 14px;
+                pointer-events: none;
+            }
+
+            /* Khóa tọa độ nút Toggle chuẩn 100% theo đường thẳng dọc */
+            .thread-level-root > .thread-children > .toggle-box > .btn-reply-toggle {
+                left: -13px;
+            }
+
+            .thread-level-reply > .thread-children > .toggle-box > .btn-reply-toggle {
+                left: -18px;
+            }
+
+            /* Highlight mượt mà */
+            .comment-focused {
+                background-color: #f0f7ff !important;
+                border-color: #cce5ff !important;
+                box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08) !important;
+                position: relative;
+                z-index: 2;
             }
         </style>
     </th:block>
@@ -29,37 +127,44 @@
 
 <main class="container my-5">
     <div class="row justify-content-center">
-
         <div class="col-lg-10 col-xl-8">
-
             <article class="article-shell mb-4">
                 <header class="article-header">
                     <div class="article-meta">
-                        <span class="badge bg-primary bg-opacity-10 text-primary" th:text="${article.category != null ? article.category.name : 'Uncategorized'}">Category</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary"
+                              th:text="${article.category != null ? article.category.name : 'Uncategorized'}">Category</span>
+                        <span class="badge ms-2"
+                              th:classappend="${article.status != null and article.status.name() == 'PUBLISHED'} ? 'bg-success' : (${article.status != null and article.status.name() == 'DRAFT'} ? 'bg-secondary' : 'bg-dark')"
+                              th:text="${article.status != null and article.status.name() == 'PUBLISHED'} ? 'Published' : (${article.status != null and article.status.name() == 'DRAFT'} ? 'Draft' : 'Unknown')">Status</span>
                         <span class="dot">•</span>
                         <span th:text="${#temporals.format(article.createdAt, 'MMM dd, yyyy')}">Date</span>
                         <span class="dot">•</span>
-                        <span>By <strong th:text="${article.author != null ? article.author.fullName : 'Admin'}">Author</strong></span>
+                        <span>By <strong
+                                th:text="${article.author != null ? article.author.fullName : 'Admin'}">Author</strong></span>
                     </div>
 
                     <h1 class="article-title" th:text="${article.title}">Title</h1>
                     <p class="article-summary" th:text="${article.summary}">Summary</p>
 
-                    <div class="article-tags" th:if="${article.tags != null}">
-                        <span class="tag" th:each="t : ${article.tags}" th:text="'#' + ${t.name}">#tag</span>
+                    <div class="mb-3" sec:authorize="hasRole('ADMIN')">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/articles/edit/{id}(id=${article.id})}">Edit Article</a>
                     </div>
 
-                    <img class="article-thumb" th:if="${article.thumbnail != null}" th:src="${article.thumbnail}" alt="thumbnail">
-                </header>
+                    <div class="article-tags" th:if="${article.tags != null}">
+                        <a class="tag text-decoration-none" th:each="t : ${article.tags}"
+                           th:href="@{/blogs(tagIds=${t.id})}" th:text="'#' + ${t.name}">#tag</a>
+                    </div>
 
-                <section class="article-content" th:utext="${article.content}">
-                </section>
+                    <img class="article-thumb" th:if="${article.thumbnail != null}" th:src="${article.thumbnail}"
+                         alt="thumbnail">
+                </header>
+                <section class="article-content" th:utext="${article.content}"></section>
             </article>
 
             <section class="article-shell" id="comments">
                 <h4 class="fw-bold mb-4">Comments</h4>
 
-                <!-- Success/Error Messages -->
                 <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
                     <span th:text="${success}"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -69,124 +174,131 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
-                <!-- Comment Form -->
-                <form th:action="@{/comments}" th:object="${commentForm}" method="post" class="mb-5">
+                <form id="commentCreateForm" sec:authorize="isAuthenticated()" th:action="@{/comments}"
+                      th:object="${commentForm}" method="post" class="mb-5">
                     <input type="hidden" name="articleId" th:value="${article.id}">
-                    
-                    <div class="mb-3">
-                        <label for="authorName" class="form-label">Your Name</label>
-                        <input type="text" class="form-control" id="authorName" th:field="*{authorName}" placeholder="Enter your name">
-                        <div th:if="${#fields.hasErrors('authorName')}" class="text-danger small mt-1">
-                            <span th:errors="*{authorName}"></span>
-                        </div>
-                    </div>
-                    
                     <div class="mb-3">
                         <label for="content" class="form-label">Comment</label>
-                        <textarea class="form-control bg-light border-0" id="content" th:field="*{content}" rows="3" placeholder="Write a comment..." style="border-radius: 12px; padding: 16px;"></textarea>
+                        <textarea class="form-control bg-light border-0" id="content" th:field="*{content}" rows="3"
+                                  placeholder="Write a comment..."
+                                  style="border-radius: 12px; padding: 16px;"></textarea>
                         <div th:if="${#fields.hasErrors('content')}" class="text-danger small mt-1">
                             <span th:errors="*{content}"></span>
                         </div>
                     </div>
-                    
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary fw-medium px-4 rounded-pill">Post Comment</button>
                     </div>
                 </form>
+                <div sec:authorize="isAnonymous()" class="alert alert-info mb-5">
+                    Please <a th:href="@{/authen/login}">login</a> to comment.
+                </div>
 
                 <hr class="text-muted mb-4 opacity-25">
 
-                <!-- Comments List -->
-                <div th:if="${parentComments != null and !parentComments.isEmpty()}">
-                    <div class="comment" th:each="c : ${parentComments}">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="avatar-circle me-3 text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
-                                 th:text="${#strings.substring(c.authorName, 0, 1)}">A</div>
-                            <div>
-                                <div class="comment-author mb-0" th:text="${c.authorName}">Name</div>
-                                <div class="comment-date" th:text="${#temporals.format(c.createdAt, 'MMM dd, yyyy HH:mm')}">Date</div>
-                            </div>
-                            <div class="ms-auto">
-                                <!-- Edit Button -->
-                                <button type="button" class="btn btn-sm btn-outline-primary me-2" 
-                                        th:onclick="'toggleEditForm(' + ${c.id} + ')'">Edit</button>
-                                <!-- Reply Button -->
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-2" 
-                                        th:onclick="'toggleReplyForm(' + ${c.id} + ')'">Reply</button>
-                                <!-- Delete Button (Admin only) -->
-                                <div class="d-inline" sec:authorize="hasRole('ADMIN')">
-                                    <form th:action="@{/comments/delete/{id}(id=${c.id})}" method="post" 
-                                          onsubmit="return confirm('Are you sure you want to delete this comment?')" class="d-inline">
-                                        <input type="hidden" name="articleId" th:value="${article.id}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                    </form>
+                <div id="commentsList" th:if="${parentComments != null and !parentComments.isEmpty()}">
+                    <div class="comment-thread thread-level-root mb-3" th:each="c : ${parentComments}"
+                         th:with="authorUsername=${c.author != null ? c.author.username : 'unknown'}"
+                         th:id="'comment-' + ${c.id}">
+
+                        <div class="comment p-3" th:id="'comment-node-' + ${c.id}">
+                            <div class="d-flex align-items-center mb-2">
+                                <img class="rounded-circle me-3 shadow-sm"
+                                     style="width: 40px; height: 40px;"
+                                     th:src="@{'https://ui-avatars.com/api/?name=' + ${authorUsername} + '&background=2563eb&color=fff&size=40&bold=true&rounded=true'}"
+                                     th:alt="${'@' + authorUsername}">
+                                <div>
+                                    <div class="comment-author mb-0">
+                                        <span th:text="${'@' + authorUsername}">@username</span>
+                                        <span class="badge bg-warning text-dark ms-2"
+                                              th:if="${article.author != null and article.author.username == authorUsername}">Author</span>
+                                    </div>
+                                    <div class="comment-date d-flex align-items-center gap-2 flex-wrap">
+                                        <span th:text="${#temporals.format(c.createdAt, 'MMM dd, yyyy HH:mm')}">Date</span>
+                                    </div>
+                                </div>
+                                <div class="ms-auto">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-2"
+                                            th:if="${#authentication != null and #authentication.name == authorUsername}"
+                                            th:onclick="'toggleEditForm(' + ${c.id} + ')'">Edit
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                                            sec:authorize="isAuthenticated()"
+                                            th:onclick="'toggleReplyForm(' + ${c.id} + ')'">Reply
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            th:if="${#authentication != null and (#authentication.name == authorUsername or #authorization.expression('hasRole(''ADMIN'')'))}"
+                                            th:onclick="'deleteComment(' + ${c.id} + ')'">Delete
+                                    </button>
                                 </div>
                             </div>
+
+                            <div class="comment-body ms-5 ps-1" th:id="'comment-content-' + ${c.id}"
+                                 th:text="${c.content}">Content
+                            </div>
+
+                            <div class="comment-edit-form ms-5 ps-1 mt-2" th:id="'edit-form-' + ${c.id}"
+                                 th:if="${#authentication != null and #authentication.name == authorUsername}"
+                                 style="display: none;">
+                                <form th:action="@{/comments/edit/{id}(id=${c.id})}" method="post" class="mb-0">
+                                    <input type="hidden" name="articleId" th:value="${article.id}">
+                                    <div class="mb-2">
+                                        <textarea class="form-control" th:id="'edit-content-' + ${c.id}" name="content"
+                                                  rows="2" required th:text="${c.content}"></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                th:onclick="'toggleEditForm(' + ${c.id} + ')'">Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="reply-form ms-5 ps-1 mt-3" th:id="'reply-form-' + ${c.id}"
+                                 style="display: none;" sec:authorize="isAuthenticated()">
+                                <form th:action="@{/comments}" method="post" class="mb-0">
+                                    <input type="hidden" name="articleId" th:value="${article.id}">
+                                    <input type="hidden" name="parentCommentId" th:value="${c.id}">
+                                    <div class="mb-2">
+                                        <textarea class="form-control" th:id="'reply-content-' + ${c.id}" name="content"
+                                                  rows="2" placeholder="Write a reply..." required></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                th:onclick="'toggleReplyForm(' + ${c.id} + ')'">Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                        
-                        <!-- Comment Content -->
-                        <div class="comment-body ms-5 ps-1" th:id="'comment-content-' + ${c.id}" th:text="${c.content}">Content</div>
-                        
-                        <!-- Edit Form -->
-                        <div class="comment-edit-form ms-5 ps-1 mt-2" th:id="'edit-form-' + ${c.id}" style="display: none;">
-                            <form th:action="@{/comments/edit/{id}(id=${c.id})}" method="post" class="mb-0">
-                                <input type="hidden" name="articleId" th:value="${article.id}">
-                                <div class="mb-2">
-                                    <textarea class="form-control" th:id="'edit-content-' + ${c.id}" 
-                                              name="content" rows="2" required
-                                              th:text="${c.content}"></textarea>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" 
-                                            th:onclick="'toggleEditForm(' + ${c.id} + ')'">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
-                        
-                                                
-                        <!-- Reply Form -->
-                        <div class="reply-form ms-5 ps-1 mt-3" th:id="'reply-form-' + ${c.id}" style="display: none;">
-                            <form th:action="@{/comments}" method="post" class="mb-0">
-                                <input type="hidden" name="articleId" th:value="${article.id}">
-                                <input type="hidden" name="parentCommentId" th:value="${c.id}">
-                                <div class="mb-2">
-                                    <input type="text" class="form-control" name="authorName" 
-                                           placeholder="Your name" required>
-                                </div>
-                                <div class="mb-2">
-                                    <textarea class="form-control" th:id="'reply-content-' + ${c.id}" 
-                                              name="content" rows="2" placeholder="Write a reply..." required></textarea>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-sm btn-primary">Reply</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" 
-                                            th:onclick="'toggleReplyForm(' + ${c.id} + ')'">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
-                        
-                        <!-- Replies Container -->
-                        <div class="replies-container ms-5 ps-1" th:id="'replies-' + ${c.id}">
-                            <!-- Replies will be loaded here via JavaScript -->
-                        </div>
-                        
-                        <!-- Load Replies Button -->
-                        <div class="ms-5 ps-1 mt-2">
-                            <button type="button" class="btn btn-sm btn-link" 
-                                    th:onclick="'loadReplies(' + ${c.id} + ')'">
-                                View Replies
-                            </button>
+
+                        <div class="thread-children"
+                             th:classappend="${replyCounts != null and replyCounts[c.id] != null and replyCounts[c.id] > 0} ? 'has-tree' : ''"
+                             th:id="'replies-wrapper-' + ${c.id}">
+                            <div class="toggle-box"
+                                 th:if="${replyCounts != null and replyCounts[c.id] != null and replyCounts[c.id] > 0}">
+                                <button type="button" class="btn-reply-toggle" th:attr="data-replies-toggle-for=${c.id}"
+                                        th:onclick="'toggleReplies(' + ${c.id} + ', this)'">
+                                    <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd"
+                                              d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="replies-container" th:id="'replies-' + ${c.id}"></div>
                         </div>
                     </div>
                 </div>
 
-                <div th:if="${parentComments == null or parentComments.isEmpty()}" class="text-muted text-center py-5">
+                <div id="emptyCommentsState" th:if="${parentComments == null or parentComments.isEmpty()}"
+                     class="text-muted text-center py-5">
                     <i class="bi bi-chat-square-text fs-1 mb-3 d-block opacity-50"></i>
                     No comments yet. Be the first to share your thoughts!
                 </div>
             </section>
-
         </div>
     </div>
 </main>
@@ -194,21 +306,47 @@
 <th:block id="customJs">
     <script th:inline="javascript">
         const articleId = /*[[${article.id}]]*/ 0;
-        
-        // Initialize comment functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            // Make toggle functions global
-            window.toggleEditForm = function(commentId) {
-                console.log('Toggle edit form for comment:', commentId);
+        const articleAuthorUsername = /*[[${article.author != null ? article.author.username : ''}]]*/ '';
+        const currentUsername = /*[[${#authentication != null ? #authentication.name : ''}]]*/ '';
+        const isAuthenticated = /*[[${#authentication != null}]]*/ false;
+        const isAdmin = /*[[${#authentication != null and #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}]]*/ false;
+
+        const ICON_PLUS = `<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/></svg>`;
+        const ICON_MINUS = `<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8Z"/></svg>`;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            dedupeRenderedCommentsOnInit();
+            focusCommentFromUrl();
+
+            // Allow header notification dropdown to trigger comment focusing without page reload.
+            window.hsfFocusCommentFromUrl = focusCommentFromUrl;
+
+            function closeAllInlineForms(exceptId) {
+                document.querySelectorAll('[id^="edit-form-"]').forEach(function (form) {
+                    if (exceptId && form.id === exceptId) return;
+                    form.style.display = 'none';
+                });
+                document.querySelectorAll('[id^="reply-form-"]').forEach(function (form) {
+                    if (exceptId && form.id === exceptId) return;
+                    form.style.display = 'none';
+                });
+                document.querySelectorAll('[id^="comment-content-"]').forEach(function (content) {
+                    const commentId = String(content.id).replace('comment-content-', '');
+                    const editForm = document.getElementById('edit-form-' + commentId);
+                    if (!editForm || editForm.style.display === 'none' || editForm.style.display === '') {
+                        content.style.display = 'block';
+                    }
+                });
+            }
+
+            window.toggleEditForm = function (commentId) {
+                clearFocusedComments();
                 const commentContent = document.getElementById('comment-content-' + commentId);
                 const editForm = document.getElementById('edit-form-' + commentId);
-                
-                if (!commentContent || !editForm) {
-                    console.error('Elements not found:', {commentContent, editForm});
-                    return;
-                }
-                
+                if (!commentContent || !editForm) return;
+
                 if (editForm.style.display === 'none' || editForm.style.display === '') {
+                    closeAllInlineForms('edit-form-' + commentId);
                     commentContent.style.display = 'none';
                     editForm.style.display = 'block';
                     document.getElementById('edit-content-' + commentId).focus();
@@ -217,81 +355,492 @@
                     editForm.style.display = 'none';
                 }
             };
-            
-            window.toggleReplyForm = function(commentId) {
-                console.log('Toggle reply form for comment:', commentId);
+
+            window.toggleReplyForm = function (commentId) {
+                clearFocusedComments();
                 const replyForm = document.getElementById('reply-form-' + commentId);
-                const allReplyForms = document.querySelectorAll('[id^="reply-form-"]');
-                
-                if (!replyForm) {
-                    console.error('Reply form not found for comment:', commentId);
-                    return;
-                }
-                
-                // Hide all other reply forms
-                allReplyForms.forEach(form => {
-                    if (form.id !== 'reply-form-' + commentId) {
-                        form.style.display = 'none';
-                    }
-                });
-                
-                // Toggle current reply form
+                if (!replyForm) return;
+
                 if (replyForm.style.display === 'none' || replyForm.style.display === '') {
+                    closeAllInlineForms('reply-form-' + commentId);
                     replyForm.style.display = 'block';
                     const replyContent = document.getElementById('reply-content-' + commentId);
-                    if (replyContent) {
-                        replyContent.focus();
-                    }
+                    if (replyContent) replyContent.focus();
                 } else {
                     replyForm.style.display = 'none';
                 }
             };
+
+            const commentsSection = document.getElementById('comments');
+            if (commentsSection) {
+                commentsSection.addEventListener('submit', function (event) {
+                    const form = event.target;
+                    if (!(form instanceof HTMLFormElement)) return;
+                    const action = form.getAttribute('action') || '';
+                    if (action.includes('/comments/edit/')) {
+                        event.preventDefault();
+                        submitEditCommentForm(form);
+                        return;
+                    }
+                    if (!action.endsWith('/comments')) return;
+                    event.preventDefault();
+                    submitCommentForm(form);
+                });
+            }
         });
-        
-        // Load replies for a comment
+
         function loadReplies(commentId) {
-            fetch(`/comments/api/replies/${commentId}`)
+            return fetch(`/comments/api/replies/${commentId}`)
                 .then(response => response.json())
                 .then(replies => {
                     const repliesContainer = document.getElementById('replies-' + commentId);
+                    if (!repliesContainer) return [];
                     repliesContainer.innerHTML = '';
-                    
                     replies.forEach(reply => {
                         const replyHtml = createReplyHtml(reply);
                         repliesContainer.insertAdjacentHTML('beforeend', replyHtml);
                     });
+                    syncReplyTreeVisual(commentId, replies.length > 0);
+                    return replies;
                 })
-                .catch(error => console.error('Error loading replies:', error));
+                .catch(error => {
+                    console.error('Error loading replies:', error);
+                    syncReplyTreeVisual(commentId, false);
+                    return [];
+                });
         }
-        
-        // Create reply HTML
+
+        function syncReplyTreeVisual(commentId, hasReplies) {
+            const wrapper = document.getElementById('replies-wrapper-' + commentId);
+            if (!wrapper) return;
+            wrapper.classList.toggle('has-tree', !!hasReplies);
+        }
+
+        function clearFocusedComments() {
+            document.querySelectorAll('.comment-focused').forEach(function (el) {
+                el.classList.remove('comment-focused');
+            });
+        }
+
+        function markCommentsAsFocused(targetCommentId) {
+            clearFocusedComments();
+            const targetWrapper = document.getElementById('comment-' + targetCommentId);
+            const targetNode = document.getElementById('comment-node-' + targetCommentId);
+
+            if (!targetWrapper) return;
+            targetWrapper.scrollIntoView({behavior: 'smooth', block: 'center'});
+            if (targetNode) {
+                targetNode.classList.add('comment-focused');
+            }
+        }
+
+        function showMissingCommentPopup() {
+            const message = 'The comment you are trying to access was not found or has been deleted.';
+            if (window.bootstrap && window.bootstrap.Modal) {
+                let modalEl = document.getElementById('missingCommentModal');
+                if (!modalEl) {
+                    modalEl = document.createElement('div');
+                    modalEl.id = 'missingCommentModal';
+                    modalEl.className = 'modal fade';
+                    modalEl.tabIndex = -1;
+                    modalEl.setAttribute('aria-hidden', 'true');
+                    modalEl.innerHTML = `
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Comment not found</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">${message}</div>
+                                <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div>
+                            </div>
+                        </div>`;
+                    document.body.appendChild(modalEl);
+                }
+                window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                return;
+            }
+            window.alert(message);
+        }
+
+        async function openRepliesFor(commentId) {
+            ensureReplyToggleButton(commentId);
+            const toggle = document.querySelector(`[data-replies-toggle-for="${commentId}"]`);
+            if (toggle) {
+                toggle.setAttribute('data-open', 'true');
+                toggle.innerHTML = ICON_MINUS;
+            }
+            return loadReplies(commentId);
+        }
+
+        async function focusCommentFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const focusCommentId = Number(params.get('focusCommentId') || 0);
+            if (!focusCommentId) return;
+
+            if (document.getElementById('comment-' + focusCommentId)) {
+                markCommentsAsFocused(focusCommentId);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/comments/api/path/${focusCommentId}`);
+                if (!response.ok) {
+                    showMissingCommentPopup();
+                    return;
+                }
+                const data = await response.json();
+                const path = data && Array.isArray(data.path) ? data.path : [];
+                if (path.length === 0) {
+                    showMissingCommentPopup();
+                    return;
+                }
+                for (let i = 0; i < path.length - 1; i += 1) {
+                    const currentId = path[i];
+                    await openRepliesFor(currentId);
+                }
+
+                // Retry once if DOM update timing causes deep replies not to render immediately.
+                if (!document.getElementById('comment-' + focusCommentId)) {
+                    for (let i = 0; i < path.length - 1; i += 1) {
+                        await openRepliesFor(path[i]);
+                    }
+                }
+
+                if (document.getElementById('comment-' + focusCommentId)) {
+                    markCommentsAsFocused(focusCommentId);
+                } else {
+                    showMissingCommentPopup();
+                }
+            } catch (error) {
+                console.warn('Unable to focus comment', error);
+            }
+        }
+
+        function toggleReplies(commentId, buttonEl) {
+            const repliesContainer = document.getElementById('replies-' + commentId);
+            if (!repliesContainer || !buttonEl) return;
+
+            const isOpen = buttonEl.getAttribute('data-open') === 'true';
+            if (isOpen) {
+                repliesContainer.innerHTML = '';
+                syncReplyTreeVisual(commentId, false);
+                buttonEl.setAttribute('data-open', 'false');
+                buttonEl.innerHTML = ICON_PLUS;
+                return;
+            }
+
+            loadReplies(commentId);
+            buttonEl.setAttribute('data-open', 'true');
+            buttonEl.innerHTML = ICON_MINUS;
+        }
+
+        function isRepliesOpen(commentId) {
+            const button = document.querySelector(`[data-replies-toggle-for="${commentId}"]`);
+            return !!button && button.getAttribute('data-open') === 'true';
+        }
+
+        function ensureReplyToggleButton(commentId) {
+            const wrapper = document.getElementById('replies-wrapper-' + commentId);
+            if (!wrapper) return;
+            const exists = document.querySelector(`[data-replies-toggle-for="${commentId}"]`);
+            if (exists) return;
+
+            const toggleContainer = document.createElement('div');
+            toggleContainer.className = 'toggle-box';
+            toggleContainer.innerHTML = `<button type="button" class="btn-reply-toggle" data-replies-toggle-for="${commentId}" onclick="toggleReplies(${commentId}, this)">${ICON_PLUS}</button>`;
+
+            // CHÈN NÚT LÊN TRÊN CÙNG CỦA WRAPPER THAY VÌ XUỐNG DƯỚI
+            wrapper.insertBefore(toggleContainer, wrapper.firstChild);
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/[&<>"']/g, function (m) {
+                return ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[m];
+            });
+        }
+
+        function dedupeRenderedCommentsOnInit() {
+            const commentsList = document.getElementById('commentsList');
+            if (!commentsList) return;
+            const seenKeys = new Set();
+            commentsList.querySelectorAll(':scope > .comment-thread').forEach(function (node) {
+                const author = (node.querySelector('.comment-author')?.textContent || '').trim().toLowerCase();
+                const dateText = (node.querySelector('.comment-date')?.textContent || '').trim().toLowerCase();
+                const content = (node.querySelector('[id^="comment-content-"]')?.textContent || '').trim().toLowerCase();
+                const key = `${author}|${dateText}|${content}`;
+                if (seenKeys.has(key)) {
+                    node.remove();
+                    return;
+                }
+                seenKeys.add(key);
+            });
+        }
+
+        function submitCommentForm(form) {
+            const params = new URLSearchParams(new FormData(form));
+            fetch('/comments/api', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params.toString()
+            })
+                .then(async response => {
+                    if (!response.ok) throw new Error(await response.text());
+                    return response.json();
+                })
+                .then(comment => {
+                    appendCommentToUi(comment, true);
+                    const textArea = form.querySelector('textarea[name="content"]');
+                    if (textArea) textArea.value = '';
+                    const parentIdField = form.querySelector('input[name="parentCommentId"]');
+                    if (parentIdField) {
+                        const replyForm = form.closest('.reply-form');
+                        if (replyForm) replyForm.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Create comment failed:', error);
+                    alert('Unable to post comment.');
+                });
+        }
+
+        function submitEditCommentForm(form) {
+            const action = form.getAttribute('action') || '';
+            const match = action.match(/\/comments\/edit\/(\d+)/);
+            if (!match) return;
+
+            const editedCommentId = Number(match[1]);
+            const params = new URLSearchParams(new FormData(form));
+
+            fetch(`/comments/api/edit/${editedCommentId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params.toString()
+            })
+                .then(async response => {
+                    if (!response.ok) throw new Error(await response.text());
+                    return response.json();
+                })
+                .then(updated => {
+                    replaceCommentNode(editedCommentId, updated);
+                })
+                .catch(error => {
+                    console.error('Edit comment failed:', error);
+                    alert('Unable to update comment.');
+                });
+        }
+
+        function replaceCommentNode(oldCommentId, updatedComment) {
+            const contentBox = document.getElementById('comment-content-' + oldCommentId);
+            if (!contentBox || !updatedComment) return;
+
+            contentBox.innerHTML = escapeHtml(updatedComment.content || '');
+            contentBox.style.display = 'block';
+
+            const editForm = document.getElementById('edit-form-' + oldCommentId);
+            if (editForm) editForm.style.display = 'none';
+        }
+
+        function deleteComment(commentId) {
+            clearFocusedComments();
+            fetch(`/comments/api/delete/${commentId}`, {method: 'POST'})
+                .then(async response => {
+                    if (!response.ok) throw new Error(await response.text());
+                    return response.json();
+                })
+                .then(result => {
+                    const deletedIds = result && result.deletedCommentIds ? result.deletedCommentIds : [commentId];
+                    removeCommentsByIds(deletedIds);
+                })
+                .catch(error => {
+                    console.error('Delete comment failed:', error);
+                    alert('Unable to delete comment.');
+                });
+        }
+
         function createReplyHtml(reply) {
+            const username = reply.authorUsername || 'user';
+            const displayName = reply.authorDisplay || ('@' + username);
+            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=2563eb&color=fff&size=30&bold=true&rounded=true`;
+            const authorBadge = reply.articleAuthor || (articleAuthorUsername && username.toLowerCase() === articleAuthorUsername.toLowerCase())
+                ? '<span class="badge bg-warning text-dark ms-2">Author</span>' : '';
+            const canReply = isAuthenticated;
+            const canEdit = !!reply.canEdit || (currentUsername && username && currentUsername.toLowerCase() === username.toLowerCase());
+            const canDelete = !!reply.canDelete || isAdmin;
+            const replyCount = Number(reply.replyCount || 0);
+
             return `
-                <div class="comment-reply ms-5 ps-3 border-start border-2 border-light-subtle mt-3">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="avatar-circle-sm me-2 text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
-                             style="width: 30px; height: 30px; font-size: 12px;">
-                            ${reply.authorName.charAt(0)}
-                        </div>
-                        <div>
-                            <div class="comment-author mb-0" style="font-size: 14px;">${reply.authorName}</div>
-                            <div class="comment-date" style="font-size: 12px;">
-                                ${new Date(reply.createdAt).toLocaleString()}
+                <div class="comment-reply-thread thread-level-reply mt-3" id="comment-${reply.id}">
+                    <div class="comment-reply p-3" id="comment-node-${reply.id}">
+                        <div class="d-flex align-items-center mb-2">
+                            <img class="rounded-circle me-2 shadow-sm" style="width: 30px; height: 30px;" src="${avatarUrl}" alt="${displayName}">
+                            <div>
+                                <div class="comment-author mb-0" style="font-size: 14px;">${displayName}${authorBadge}</div>
+                                <div class="comment-date" style="font-size: 12px;">
+                                    ${new Date(reply.createdAt).toLocaleString()}
+                                </div>
+                            </div>
+                            <div class="ms-auto d-flex gap-2">
+                                ${canEdit ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleEditForm(${reply.id})">Edit</button>` : ''}
+                                ${canReply ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleReplyForm(${reply.id})">Reply</button>` : ''}
+                                ${canDelete ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteComment(${reply.id})">Delete</button>` : ''}
                             </div>
                         </div>
-                        <div class="ms-auto" sec:authorize="hasRole('ADMIN')">
-                            <form action="/comments/delete/${reply.id}" method="post" 
-                                  onsubmit="return confirm('Are you sure you want to delete this reply?')">
+                        <div class="comment-body" style="font-size: 14px;" id="comment-content-${reply.id}">${escapeHtml(reply.content || '')}</div>
+
+                        ${canEdit ? `
+                        <div class="comment-edit-form mt-2" id="edit-form-${reply.id}" style="display: none;">
+                            <form action="/comments/edit/${reply.id}" method="post" class="mb-0">
                                 <input type="hidden" name="articleId" value="${articleId}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                <div class="mb-2">
+                                    <textarea class="form-control" id="edit-content-${reply.id}" name="content" rows="2" required>${escapeHtml(reply.content || '')}</textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEditForm(${reply.id})">Cancel</button>
+                                </div>
                             </form>
-                        </div>
+                        </div>` : ''}
+
+                        ${canReply ? `
+                        <div class="reply-form mt-3" id="reply-form-${reply.id}" style="display:none;">
+                            <form action="/comments" method="post" class="mb-0">
+                                <input type="hidden" name="articleId" value="${articleId}">
+                                <input type="hidden" name="parentCommentId" value="${reply.id}">
+                                <div class="mb-2">
+                                    <textarea class="form-control" id="reply-content-${reply.id}" name="content" rows="2" placeholder="Write a reply..." required></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleReplyForm(${reply.id})">Cancel</button>
+                                </div>
+                            </form>
+                        </div>` : ''}
                     </div>
-                    <div class="comment-body" style="font-size: 14px;">${reply.content}</div>
+
+                    <div class="thread-children ${replyCount > 0 ? 'has-tree' : ''}" id="replies-wrapper-${reply.id}">
+                        ${replyCount > 0 ? `
+                        <div class="toggle-box">
+                            <button type="button" class="btn-reply-toggle" data-replies-toggle-for="${reply.id}" onclick="toggleReplies(${reply.id}, this)">${ICON_PLUS}</button>
+                        </div>` : ''}
+
+                        <div class="replies-container" id="replies-${reply.id}"></div>
+                    </div>
                 </div>
             `;
+        }
+
+        function createRootCommentHtml(comment) {
+            const authorBadge = comment.articleAuthor ? '<span class="badge bg-warning text-dark ms-2">Author</span>' : '';
+            const replyCount = Number(comment.replyCount || 0);
+            const authorUsername = comment.authorUsername || '';
+            const canEdit = !!comment.canEdit || (currentUsername && authorUsername && currentUsername.toLowerCase() === authorUsername.toLowerCase());
+            const canDelete = !!comment.canDelete || isAdmin;
+
+            return `
+                <div class="comment-thread thread-level-root mb-3" id="comment-${comment.id}">
+                    <div class="comment p-3" id="comment-node-${comment.id}">
+                        <div class="d-flex align-items-center mb-2">
+                            <img class="rounded-circle me-3 shadow-sm" style="width: 40px; height: 40px;" src="https://ui-avatars.com/api/?name=${encodeURIComponent(comment.authorUsername || 'user')}&background=2563eb&color=fff&size=40&bold=true&rounded=true" alt="${escapeHtml(comment.authorDisplay || '@user')}">
+                            <div>
+                                <div class="comment-author mb-0">${escapeHtml(comment.authorDisplay || '@user')}${authorBadge}</div>
+                                <div class="comment-date">${new Date(comment.createdAt).toLocaleString()}</div>
+                            </div>
+                            <div class="ms-auto">
+                                ${canEdit ? `<button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="toggleEditForm(${comment.id})">Edit</button>` : ''}
+                                ${isAuthenticated ? `<button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="toggleReplyForm(${comment.id})">Reply</button>` : ''}
+                                ${canDelete ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.id})">Delete</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="comment-body ms-5 ps-1" id="comment-content-${comment.id}">${escapeHtml(comment.content || '')}</div>
+
+                        ${canEdit ? `
+                        <div class="comment-edit-form ms-5 ps-1 mt-2" id="edit-form-${comment.id}" style="display: none;">
+                            <form action="/comments/edit/${comment.id}" method="post" class="mb-0">
+                                <input type="hidden" name="articleId" value="${articleId}">
+                                <div class="mb-2">
+                                    <textarea class="form-control" id="edit-content-${comment.id}" name="content" rows="2" required>${escapeHtml(comment.content || '')}</textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEditForm(${comment.id})">Cancel</button>
+                                </div>
+                            </form>
+                        </div>` : ''}
+
+                        ${isAuthenticated ? `
+                        <div class="reply-form ms-5 ps-1 mt-3" id="reply-form-${comment.id}" style="display:none;">
+                            <form action="/comments" method="post" class="mb-0">
+                                <input type="hidden" name="articleId" value="${articleId}">
+                                <input type="hidden" name="parentCommentId" value="${comment.id}">
+                                <div class="mb-2">
+                                    <textarea class="form-control" id="reply-content-${comment.id}" name="content" rows="2" placeholder="Write a reply..." required></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleReplyForm(${comment.id})">Cancel</button>
+                                </div>
+                            </form>
+                        </div>` : ''}
+                    </div>
+
+                    <div class="thread-children ${replyCount > 0 ? 'has-tree' : ''}" id="replies-wrapper-${comment.id}">
+                        ${replyCount > 0 ? `
+                        <div class="toggle-box">
+                            <button type="button" class="btn-reply-toggle" data-replies-toggle-for="${comment.id}" onclick="toggleReplies(${comment.id}, this)">${ICON_PLUS}</button>
+                        </div>` : ''}
+
+                        <div class="replies-container" id="replies-${comment.id}"></div>
+                    </div>
+                </div>`;
+        }
+
+        function appendCommentToUi(comment, forceOpenParent) {
+            if (!comment || String(comment.articleId) !== String(articleId)) return;
+            if (comment.id && document.getElementById('comment-' + comment.id)) return;
+
+            let commentsList = document.getElementById('commentsList');
+            const emptyState = document.getElementById('emptyCommentsState');
+            const parentCommentId = comment.parentCommentId;
+
+            if (!parentCommentId) {
+                if (emptyState) emptyState.classList.add('d-none');
+                if (!commentsList) {
+                    commentsList = document.createElement('div');
+                    commentsList.id = 'commentsList';
+                    const commentsSection = document.getElementById('comments');
+                    if (commentsSection) commentsSection.appendChild(commentsList);
+                }
+                const newHtml = createRootCommentHtml(comment);
+                commentsList.insertAdjacentHTML('afterbegin', newHtml);
+                return;
+            }
+
+            const repliesContainer = document.getElementById('replies-' + parentCommentId);
+            if (repliesContainer) {
+                if (comment.id && document.getElementById('comment-' + comment.id)) return;
+                const hadToggleBefore = !!document.querySelector(`[data-replies-toggle-for="${parentCommentId}"]`);
+                ensureReplyToggleButton(parentCommentId);
+                const parentToggle = document.querySelector(`[data-replies-toggle-for="${parentCommentId}"]`);
+                if (parentToggle && (forceOpenParent || !hadToggleBefore)) {
+                    parentToggle.setAttribute('data-open', 'true');
+                    parentToggle.innerHTML = ICON_MINUS;
+                }
+                if (!isRepliesOpen(parentCommentId)) return;
+                repliesContainer.insertAdjacentHTML('afterbegin', createReplyHtml(comment));
+                syncReplyTreeVisual(parentCommentId, true);
+            }
+        }
+
+        function removeCommentsByIds(commentIds) {
+            if (!Array.isArray(commentIds)) return;
+            commentIds.forEach(function (id) {
+                const node = document.getElementById('comment-' + id);
+                if (node) node.remove();
+            });
         }
     </script>
 </th:block>
 </body>
 </html>
+

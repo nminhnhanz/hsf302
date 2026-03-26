@@ -28,7 +28,7 @@
 
     <section class="mb-5">
         <div class="d-flex flex-wrap gap-3 justify-content-center">
-            <a th:each="c, iterStat : ${categories}" th:if="${iterStat.index < 4}"
+            <a th:each="c : ${topCategories}"
                th:href="@{/blogs(categoryId=${c.id})}"
                class="text-decoration-none category-pill"
                th:text="'🏷️ ' + ${c.name}">Category</a>

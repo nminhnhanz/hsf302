@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<div class="container mt-4">
+    <div class="row g-3">
+        <aside class="col-lg-3">
+            <div th:replace="~{fragments/admin-sidebar :: sidebar('categories')}"></div>
+        </aside>
+        <section class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0">Manage Categories</h3>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <form class="row g-2 mb-3" method="get" th:action="@{/admin/categories}">
+        <div class="col-md-8">
+            <label for="categorySearchQ" class="form-label visually-hidden">Search category name</label>
+            <input id="categorySearchQ" class="form-control" name="q" th:value="${q}" placeholder="Search category name...">
+        </div>
+        <input type="hidden" name="size" th:value="${size}">
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+        <div class="col-md-2 d-grid">
+            <a class="btn btn-outline-secondary" th:href="@{/admin/categories(size=${size})}">Clear</a>
+        </div>
+    </form>
+
+    <div class="card mb-4">
+        <div class="card-header">Create Category</div>
+        <div class="card-body">
+            <form class="row g-2" method="post" th:action="@{/admin/categories}">
+                <input type="hidden" name="q" th:value="${q}">
+                <input type="hidden" name="page" th:value="${categories.number}">
+                <input type="hidden" name="size" th:value="${size}">
+                <div class="col-md-4">
+                    <label for="newCategoryName" class="form-label visually-hidden">Category name</label>
+                    <input id="newCategoryName" class="form-control" name="name" placeholder="Category name" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="newCategoryDescription" class="form-label visually-hidden">Category description</label>
+                    <input id="newCategoryDescription" class="form-control" name="description" placeholder="Description (optional)">
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-success" type="submit">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+            <tr>
+                <th style="width: 40%">Name</th>
+                <th style="width: 45%">Description</th>
+                <th style="width: 15%">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${categories.content}">
+                <td>
+                    <label class="form-label visually-hidden" th:for="|name-${c.id}|">Category name</label>
+                    <input class="form-control" th:value="${c.name}" th:id="|name-${c.id}|">
+                </td>
+                <td>
+                    <label class="form-label visually-hidden" th:for="|desc-${c.id}|">Category description</label>
+                    <input class="form-control" th:value="${c.description}" th:id="|desc-${c.id}|">
+                </td>
+                <td>
+                    <form class="d-inline" th:action="@{/admin/categories/{id}/update(id=${c.id})}" method="post"
+                          th:onsubmit="|this.name.value=document.getElementById('name-${c.id}').value;this.description.value=document.getElementById('desc-${c.id}').value;|">
+                        <input type="hidden" name="q" th:value="${q}">
+                        <input type="hidden" name="page" th:value="${categories.number}">
+                        <input type="hidden" name="size" th:value="${size}">
+                        <input type="hidden" name="name">
+                        <input type="hidden" name="description">
+                        <button class="btn btn-sm btn-primary" type="submit">Save</button>
+                    </form>
+                    <form class="d-inline" th:action="@{/admin/categories/{id}/delete(id=${c.id})}" method="post"
+                          onsubmit="return confirm('Delete this category? Articles will keep existing content but category will be removed.');">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+            <nav th:if="${categories.totalPages > 1}" class="mt-3">
+                <ul class="pagination mb-0">
+                    <li class="page-item" th:classappend="${categories.first} ? 'disabled'">
+                        <a class="page-link" th:href="@{/admin/categories(page=${categories.number - 1},q=${q},size=${size})}">Previous</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, categories.totalPages - 1)}" th:classappend="${i == categories.number} ? 'active'">
+                        <a class="page-link" th:text="${i + 1}" th:href="@{/admin/categories(page=${i},q=${q},size=${size})}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${categories.last} ? 'disabled'">
+                        <a class="page-link" th:href="@{/admin/categories(page=${categories.number + 1},q=${q},size=${size})}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </section>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+
+
+
+
